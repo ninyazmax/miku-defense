@@ -1498,7 +1498,7 @@
         });
         
         function startGame() {
-
+            // Simular jugadores adicionales (para prueba)
             while (players.length < 3) {
                 players.push({ name: "Jugador " + (players.length + 1) });
             }
@@ -1506,7 +1506,7 @@
             showGame();
             
             // Iniciar lógica del juego
-            drawMap(); /
+            drawMap(); // Dibuja el mapa antes de iniciar
             gameRunning = true;
             gameOverState = false;
             
@@ -1545,6 +1545,7 @@
             document.getElementById('creditsModal').style.display = 'none';
             gameState = 'game';
             
+            // Redibuja el mapa con pixel art detallado
             drawMap();
         }
         
@@ -1565,7 +1566,7 @@
             if (currentName) {
                 currentName.name = playerName;
             } else {
-                players[0] = { name: playerName }; 
+                players[0] = { name: playerName }; // Asegura que el primer jugador sea siempre el local
             }
             updateLobbyUI();
             document.getElementById('profileModal').style.display = 'none';
