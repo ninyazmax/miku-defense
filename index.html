@@ -136,9 +136,21 @@
         .player-avatar {
             width: 64px;
             height: 64px;
-            background-color: var(--secondary-color);
             border-radius: 50%;
             margin-bottom: 0.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .player-avatar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 2px solid var(--accent-color);
+            border-radius: 50%;
+            pointer-events: none;
         }
         .player-name {
             font-size: clamp(0.6rem, 1.5vw, 0.8rem);
@@ -148,62 +160,15 @@
             border: none;
             text-align: center;
             width: 100%;
+            padding: 0.2rem;
+            outline: none;
+            transition: color 0.3s;
         }
         .player-name:focus {
-            outline: none;
             color: var(--accent-color);
         }
-        /* Nuevo: Modal de Perfil */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 101;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-content {
-            background-color: var(--background-dark);
-            padding: 2rem;
-            border: 3px solid var(--accent-color);
-            border-radius: 10px;
-            width: 90%;
-            max-width: 400px;
-            text-align: center;
-        }
-        .modal-content h2 {
-            font-size: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-        .modal-content input {
-            width: 100%;
-            padding: 0.8rem;
-            margin-bottom: 1rem;
-            background-color: #333;
-            border: 2px solid #555;
-            color: white;
-            font-family: inherit;
-            border-radius: 5px;
-        }
-        .modal-content input:focus {
-            outline: none;
-            border-color: var(--accent-color);
-        }
-        .modal-content button {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 0.8rem 1.5rem;
-            border: none;
-            cursor: pointer;
-            font-family: inherit;
-            border-radius: 5px;
-        }
-        .modal-content button:hover {
-            background-color: var(--button-hover);
+        .player-name::placeholder {
+            color: #666;
         }
         /* Juego */
         .game-container {
@@ -592,112 +557,202 @@
             { x: 700, y: 350 }   // Right to end
         ];
         
-        // Enemigos con sprites
-        const enemyTypes = [
-            { name: 'Slime', color: '#39c5bb', health: 50, speed: 1, reward: 10 },
-            { name: 'Goblin', color: '#ff9ec6', health: 75, speed: 1.2, reward: 15 },
-            { name: 'Orc', color: '#ffcc22', health: 100, speed: 0.8, reward: 20 }
-        ];
-        
-        // Sprites de enemigos (32x32)
+        // Enemigos con sprites detallados de 32x32
         const enemySprites = {
-            Slime: {
-                // Simple pixel art slime
+            // Slime - Enemigo básico
+            slime: {
                 draw: function(ctx, x, y) {
-                    // Body
+                    // Cuerpo principal
                     ctx.fillStyle = '#39c5bb';
-                    ctx.fillRect(x + 8, y + 12, 16, 16);
-                    // Highlights
+                    ctx.fillRect(x + 8, y + 16, 16, 16);
+                    
+                    // Efecto de gelatina
                     ctx.fillStyle = '#a0e8e8';
-                    ctx.fillRect(x + 10, y + 14, 4, 4);
-                    ctx.fillRect(x + 18, y + 16, 4, 4);
-                    // Eyes
+                    ctx.fillRect(x + 10, y + 18, 12, 12);
+                    
+                    // Ojos
                     ctx.fillStyle = 'white';
-                    ctx.fillRect(x + 12, y + 16, 3, 3);
-                    ctx.fillRect(x + 17, y + 16, 3, 3);
+                    ctx.fillRect(x + 12, y + 18, 4, 4);
+                    ctx.fillRect(x + 18, y + 18, 4, 4);
+                    
+                    // Pupilas
                     ctx.fillStyle = 'black';
-                    ctx.fillRect(x + 13, y + 17, 1, 1);
-                    ctx.fillRect(x + 18, y + 17, 1, 1);
-                    // Border
+                    ctx.fillRect(x + 14, y + 20, 1, 1);
+                    ctx.fillRect(x + 20, y + 20, 1, 1);
+                    
+                    // Bordes negros para resaltar el pixel art
                     ctx.strokeStyle = 'black';
                     ctx.lineWidth = 1;
-                    ctx.strokeRect(x + 8, y + 12, 16, 16);
-                    ctx.strokeRect(x + 12, y + 16, 3, 3);
-                    ctx.strokeRect(x + 17, y + 16, 3, 3);
+                    ctx.strokeRect(x + 8, y + 16, 16, 16);
+                    ctx.strokeRect(x + 12, y + 18, 4, 4);
+                    ctx.strokeRect(x + 18, y + 18, 4, 4);
                 }
             },
-            Goblin: {
+            // Goblin - Enemigo mediano
+            goblin: {
                 draw: function(ctx, x, y) {
-                    // Body
+                    // Cuerpo
                     ctx.fillStyle = '#ff9ec6';
-                    ctx.fillRect(x + 8, y + 10, 16, 18);
-                    // Head
+                    ctx.fillRect(x + 8, y + 14, 16, 16);
+                    
+                    // Cabeza
+                    ctx.fillRect(x + 10, y + 8, 12, 8);
+                    
+                    // Orejas puntiagudas
+                    ctx.fillRect(x + 8, y + 10, 2, 4);
+                    ctx.fillRect(x + 22, y + 10, 2, 4);
+                    
+                    // Ojos rojos
+                    ctx.fillStyle = 'red';
+                    ctx.fillRect(x + 12, y + 11, 2, 2);
+                    ctx.fillRect(x + 18, y + 11, 2, 2);
+                    
+                    // Boca con dientes
+                    ctx.fillStyle = 'black';
+                    ctx.fillRect(x + 15, y + 15, 2, 1);
+                    
+                    // Brazos
+                    ctx.fillRect(x + 6, y + 16, 2, 6);
+                    ctx.fillRect(x + 24, y + 16, 2, 6);
+                    
+                    // Piernas
+                    ctx.fillRect(x + 10, y + 30, 4, 2);
+                    ctx.fillRect(x + 18, y + 30, 4, 2);
+                    
+                    // Bordes negros
+                    ctx.strokeStyle = 'black';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(x + 8, y + 14, 16, 16);
+                    ctx.strokeRect(x + 10, y + 8, 12, 8);
+                    ctx.strokeRect(x + 8, y + 10, 2, 4);
+                    ctx.strokeRect(x + 22, y + 10, 2, 4);
+                    ctx.strokeRect(x + 6, y + 16, 2, 6);
+                    ctx.strokeRect(x + 24, y + 16, 2, 6);
+                }
+            },
+            // Orc - Enemigo fuerte
+            orc: {
+                draw: function(ctx, x, y) {
+                    // Cuerpo musculoso
+                    ctx.fillStyle = '#ffcc22';
+                    ctx.fillRect(x + 8, y + 12, 16, 18);
+                    
+                    // Cabeza grande
                     ctx.fillRect(x + 10, y + 6, 12, 8);
-                    // Ears
-                    ctx.fillRect(x + 8, y + 8, 2, 4);
-                    ctx.fillRect(x + 22, y + 8, 2, 4);
-                    // Eyes
+                    
+                    // Nariz grande
+                    ctx.fillStyle = '#e0b400';
+                    ctx.fillRect(x + 15, y + 10, 2, 2);
+                    
+                    // Ojos pequeños
                     ctx.fillStyle = 'black';
                     ctx.fillRect(x + 12, y + 9, 2, 2);
                     ctx.fillRect(x + 18, y + 9, 2, 2);
-                    // Mouth
+                    
+                    // Boca abierta
                     ctx.fillRect(x + 15, y + 13, 2, 1);
-                    // Arms
-                    ctx.fillRect(x + 6, y + 14, 2, 6);
-                    ctx.fillRect(x + 24, y + 14, 2, 6);
-                    // Legs
-                    ctx.fillRect(x + 10, y + 26, 4, 4);
-                    ctx.fillRect(x + 18, y + 26, 4, 4);
-                    // Border
+                    
+                    // Brazos fuertes
+                    ctx.fillRect(x + 6, y + 14, 2, 8);
+                    ctx.fillRect(x + 24, y + 14, 2, 8);
+                    
+                    // Piernas gruesas
+                    ctx.fillRect(x + 10, y + 30, 4, 4);
+                    ctx.fillRect(x + 18, y + 30, 4, 4);
+                    
+                    // Maza
+                    ctx.fillStyle = '#8B4513';
+                    ctx.fillRect(x + 4, y + 10, 2, 10);
+                    ctx.fillRect(x + 3, y + 8, 4, 3);
+                    
+                    // Bordes negros
                     ctx.strokeStyle = 'black';
                     ctx.lineWidth = 1;
-                    ctx.strokeRect(x + 8, y + 10, 16, 18);
+                    ctx.strokeRect(x + 8, y + 12, 16, 18);
                     ctx.strokeRect(x + 10, y + 6, 12, 8);
-                    ctx.strokeRect(x + 8, y + 8, 2, 4);
-                    ctx.strokeRect(x + 22, y + 8, 2, 4);
-                    ctx.strokeRect(x + 6, y + 14, 2, 6);
-                    ctx.strokeRect(x + 24, y + 14, 2, 6);
-                    ctx.strokeRect(x + 10, y + 26, 4, 4);
-                    ctx.strokeRect(x + 18, y + 26, 4, 4);
+                    ctx.strokeRect(x + 6, y + 14, 2, 8);
+                    ctx.strokeRect(x + 24, y + 14, 2, 8);
+                    ctx.strokeRect(x + 4, y + 10, 2, 10);
+                    ctx.strokeRect(x + 3, y + 8, 4, 3);
                 }
             },
-            Orc: {
+            // Skeleton - Enemigo esquelético
+            skeleton: {
                 draw: function(ctx, x, y) {
-                    // Body
-                    ctx.fillStyle = '#ffcc22';
-                    ctx.fillRect(x + 8, y + 8, 16, 20);
-                    // Head
-                    ctx.fillRect(x + 10, y + 4, 12, 8);
-                    // Nose
-                    ctx.fillStyle = '#e0b400';
-                    ctx.fillRect(x + 15, y + 9, 2, 2);
-                    // Eyes
+                    // Cabeza (calavera)
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(x + 12, y + 8, 8, 8);
+                    
+                    // Ojos vacíos
                     ctx.fillStyle = 'black';
-                    ctx.fillRect(x + 12, y + 7, 2, 2);
-                    ctx.fillRect(x + 18, y + 7, 2, 2);
-                    // Mouth
-                    ctx.fillRect(x + 15, y + 11, 2, 1);
-                    // Arms
-                    ctx.fillRect(x + 6, y + 12, 2, 8);
-                    ctx.fillRect(x + 24, y + 12, 2, 8);
-                    // Legs
-                    ctx.fillRect(x + 10, y + 26, 4, 6);
-                    ctx.fillRect(x + 18, y + 26, 4, 6);
-                    // Club
-                    ctx.fillStyle = '#8B4513';
-                    ctx.fillRect(x + 4, y + 8, 2, 12);
-                    ctx.fillRect(x + 3, y + 7, 4, 3);
-                    // Border
+                    ctx.fillRect(x + 14, y + 10, 2, 2);
+                    ctx.fillRect(x + 18, y + 10, 2, 2);
+                    
+                    // Columna vertebral
+                    ctx.fillRect(x + 16, y + 16, 2, 10);
+                    
+                    // Costillas
+                    ctx.fillRect(x + 14, y + 18, 2, 2);
+                    ctx.fillRect(x + 18, y + 18, 2, 2);
+                    ctx.fillRect(x + 14, y + 22, 2, 2);
+                    ctx.fillRect(x + 18, y + 22, 2, 2);
+                    
+                    // Brazos
+                    ctx.fillRect(x + 10, y + 16, 2, 6);
+                    ctx.fillRect(x + 20, y + 16, 2, 6);
+                    
+                    // Piernas
+                    ctx.fillRect(x + 14, y + 28, 2, 4);
+                    ctx.fillRect(x + 18, y + 28, 2, 4);
+                    
+                    // Bordes negros
                     ctx.strokeStyle = 'black';
                     ctx.lineWidth = 1;
-                    ctx.strokeRect(x + 8, y + 8, 16, 20);
-                    ctx.strokeRect(x + 10, y + 4, 12, 8);
-                    ctx.strokeRect(x + 6, y + 12, 2, 8);
-                    ctx.strokeRect(x + 24, y + 12, 2, 8);
-                    ctx.strokeRect(x + 10, y + 26, 4, 6);
-                    ctx.strokeRect(x + 18, y + 26, 4, 6);
-                    ctx.strokeRect(x + 4, y + 8, 2, 12);
-                    ctx.strokeRect(x + 3, y + 7, 4, 3);
+                    ctx.strokeRect(x + 12, y + 8, 8, 8);
+                    ctx.strokeRect(x + 16, y + 16, 2, 10);
+                    ctx.strokeRect(x + 14, y + 18, 2, 2);
+                    ctx.strokeRect(x + 18, y + 18, 2, 2);
+                    ctx.strokeRect(x + 14, y + 22, 2, 2);
+                    ctx.strokeRect(x + 18, y + 22, 2, 2);
+                }
+            },
+            // Dragon - Jefe final
+            dragon: {
+                draw: function(ctx, x, y) {
+                    // Cabeza del dragón
+                    ctx.fillStyle = '#800080';
+                    ctx.fillRect(x + 8, y + 8, 16, 12);
+                    
+                    // Ojos rojos
+                    ctx.fillStyle = 'red';
+                    ctx.fillRect(x + 12, y + 10, 2, 2);
+                    ctx.fillRect(x + 18, y + 10, 2, 2);
+                    
+                    // Cuernos
+                    ctx.fillStyle = '#663300';
+                    ctx.fillRect(x + 8, y + 8, 2, 4);
+                    ctx.fillRect(x + 22, y + 8, 2, 4);
+                    
+                    // Cuerpo escamoso
+                    ctx.fillStyle = '#993399';
+                    ctx.fillRect(x + 10, y + 20, 12, 8);
+                    
+                    // Alas
+                    ctx.fillStyle = '#440044';
+                    ctx.fillRect(x + 6, y + 16, 4, 8);
+                    ctx.fillRect(x + 22, y + 16, 4, 8);
+                    
+                    // Cola
+                    ctx.fillRect(x + 16, y + 28, 2, 4);
+                    ctx.fillRect(x + 18, y + 30, 2, 2);
+                    
+                    // Bordes negros
+                    ctx.strokeStyle = 'black';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(x + 8, y + 8, 16, 12);
+                    ctx.strokeRect(x + 10, y + 20, 12, 8);
+                    ctx.strokeRect(x + 6, y + 16, 4, 8);
+                    ctx.strokeRect(x + 22, y + 16, 4, 8);
                 }
             }
         };
@@ -738,7 +793,7 @@
             });
         }
         
-        // NUEVO: Mapa de pixel art bosque detallado, estilo la imagen de referencia
+        // NUEVO: Mapa de pixel art bosque detallado con bordes negros finos
         function drawMap() {
             ctx.clearRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
             
@@ -1131,8 +1186,6 @@
         
         // Lógica de oleadas de enemigos
         function startWave() {
-            if (gameOverState) return;
-            
             if (currentWave >= MAX_WAVES) {
                 showMessage("¡Has ganado el juego!");
                 return;
@@ -1143,13 +1196,15 @@
             const enemyCount = 5 + currentWave * 2;
             
             // Determinar tipo de enemigo basado en la oleada
-            let enemyTypeIndex = 0;
-            if (currentWave > 10) enemyTypeIndex = 2; // Orcs después de la oleada 10
-            else if (currentWave > 5) enemyTypeIndex = 1; // Goblins después de la oleada 5
+            let enemyType = 'slime';
+            if (currentWave > 15) enemyType = 'dragon';
+            else if (currentWave > 10) enemyType = 'skeleton';
+            else if (currentWave > 5) enemyType = 'orc';
+            else if (currentWave > 3) enemyType = 'goblin';
             
             for (let i = 0; i < enemyCount; i++) {
                 setTimeout(() => {
-                    spawnEnemy(enemyTypeIndex);
+                    spawnEnemy(enemyType);
                 }, i * 800);
             }
             
@@ -1163,10 +1218,9 @@
             }
         }
         
-        function spawnEnemy(typeIndex = 0) {
+        function spawnEnemy(type = 'slime') {
             if (gameOverState) return;
             
-            const enemyType = enemyTypes[typeIndex];
             const enemyElement = document.createElement('div');
             enemyElement.className = 'enemy';
             enemyElement.style.width = '32px';
@@ -1182,21 +1236,67 @@
             const spriteCtx = spriteCanvas.getContext('2d');
             
             // Dibujar el sprite
-            enemySprites[enemyType.name].draw(spriteCtx, 0, 0);
+            if (enemySprites[type]) {
+                enemySprites[type].draw(spriteCtx, 0, 0);
+            } else {
+                // Sprite por defecto si no existe
+                spriteCtx.fillStyle = '#39c5bb';
+                spriteCtx.fillRect(8, 16, 16, 16);
+                spriteCtx.fillStyle = 'white';
+                spriteCtx.fillRect(12, 18, 4, 4);
+                spriteCtx.fillRect(18, 18, 4, 4);
+                spriteCtx.fillStyle = 'black';
+                spriteCtx.fillRect(14, 20, 1, 1);
+                spriteCtx.fillRect(20, 20, 1, 1);
+            }
             enemyElement.appendChild(spriteCanvas);
             
             gameMap.appendChild(enemyElement);
+            
+            // Configurar propiedades según el tipo
+            let health, speed, reward;
+            switch(type) {
+                case 'slime':
+                    health = 50 + currentWave * 5;
+                    speed = 1 + currentWave * 0.1;
+                    reward = 10 + currentWave * 1;
+                    break;
+                case 'goblin':
+                    health = 75 + currentWave * 6;
+                    speed = 1.2 + currentWave * 0.1;
+                    reward = 15 + currentWave * 2;
+                    break;
+                case 'orc':
+                    health = 100 + currentWave * 8;
+                    speed = 0.8 + currentWave * 0.05;
+                    reward = 20 + currentWave * 3;
+                    break;
+                case 'skeleton':
+                    health = 150 + currentWave * 10;
+                    speed = 1.5 + currentWave * 0.1;
+                    reward = 30 + currentWave * 4;
+                    break;
+                case 'dragon':
+                    health = 300 + currentWave * 15;
+                    speed = 2.0 + currentWave * 0.1;
+                    reward = 50 + currentWave * 5;
+                    break;
+                default:
+                    health = 50 + currentWave * 5;
+                    speed = 1 + currentWave * 0.1;
+                    reward = 10 + currentWave * 1;
+            }
             
             const enemyObj = {
                 element: enemyElement,
                 x: path[0].x,
                 y: path[0].y,
-                health: enemyType.health + currentWave * 10,
-                maxHealth: enemyType.health + currentWave * 10,
-                speed: enemyType.speed + currentWave * 0.1,
+                health: health,
+                maxHealth: health,
+                speed: speed,
                 pathIndex: 0,
-                reward: enemyType.reward + currentWave * 2,
-                type: enemyType.name
+                reward: reward,
+                type: type
             };
             
             enemies.push(enemyObj);
