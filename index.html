@@ -140,17 +140,12 @@
             margin-bottom: 0.5rem;
             position: relative;
             overflow: hidden;
-        }
-        .player-avatar::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
             border: 2px solid var(--accent-color);
-            border-radius: 50%;
-            pointer-events: none;
+        }
+        .player-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
         .player-name {
             font-size: clamp(0.6rem, 1.5vw, 0.8rem);
@@ -163,13 +158,6 @@
             padding: 0.2rem;
             outline: none;
             transition: color 0.3s;
-        }
-        .player-name::before {
-            content: attr(data-name);
-            position: absolute;
-            color: transparent;
-            pointer-events: none;
-            z-index: -1;
         }
         .player-name:focus {
             color: var(--accent-color);
@@ -195,7 +183,7 @@
         .game-map {
             width: 800px;
             height: 600px;
-            background: #2e8b57; /* color base, pero se sobreescribe por el canvas */
+            background: #2e8b57;
             position: relative;
             overflow: hidden;
         }
@@ -398,51 +386,54 @@
             transform: translate(-2px, -2px);
             box-shadow: 5px 5px 0px rgba(0, 0, 0, 0.5);
         }
-        /* Rango de torres */
-        .tower-range {
-            position: absolute;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 5;
-        }
-        /* Preview de torre */
+        /* Selección de torre */
         .tower-preview {
             position: fixed;
             width: 32px;
             height: 32px;
             transform: translate(-50%, -50%);
-            pointer-events: none;
             z-index: 100;
+            pointer-events: none;
             opacity: 0.7;
         }
-        /* Validación de colocación */
-        .placement-invalid {
-            border: 2px solid rgba(255, 0, 0, 0.5);
-            background-color: rgba(255, 0, 0, 0.2);
+        .range-preview {
+            position: fixed;
+            border: 2px dashed rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 99;
         }
-        .placement-valid {
-            border: 2px solid rgba(0, 255, 0, 0.5);
-            background-color: rgba(0, 255, 0, 0.2);
+        .placement-preview {
+            position: fixed;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 98;
+            opacity: 0.5;
         }
-        /* Botón de siguiente ronda (solo para host) */
-        .next-wave-button {
+        /* Host Controls */
+        .host-controls {
             display: none;
+            margin-top: 1rem;
+            width: 100%;
+        }
+        .host-button {
             background-color: var(--accent-color);
             color: white;
-            padding: 0.8rem 1.5rem;
+            padding: 0.5rem;
             border: 2px solid black;
             cursor: pointer;
             font-family: inherit;
-            font-size: 1rem;
+            font-size: 0.8rem;
+            width: 100%;
             transition: all 0.3s;
-            box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.5);
-            margin-top: 1rem;
         }
-        .next-wave-button:hover {
-            background-color: #ff44b4;
-            transform: translate(-2px, -2px);
-            box-shadow: 5px 5px 0px rgba(0, 0, 0, 0.5);
+        .host-button:hover {
+            background-color: #ff4136;
+            transform: translate(-1px, -1px);
         }
         /* Modales */
         .modal {
@@ -492,33 +483,22 @@
             cursor: pointer;
             font-family: inherit;
             border-radius: 5px;
+            margin: 0.2rem;
         }
         .modal-content button:hover {
             background-color: var(--button-hover);
         }
-        /* Mensajes */
-        .message-box {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.8);
+        .modal-content textarea {
+            width: 100%;
+            height: 100px;
+            padding: 0.8rem;
+            margin-bottom: 1rem;
+            background-color: #333;
+            border: 2px solid #555;
             color: white;
-            padding: 1rem 2rem;
-            border: 2px solid var(--accent-color);
-            z-index: 1000;
-            font-family: 'Press Start 2P', cursive;
-            text-align: center;
+            font-family: inherit;
             border-radius: 5px;
-            animation: fade-in 0.5s forwards;
-        }
-        @keyframes fade-in {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        @keyframes fade-out {
-            from { opacity: 1; }
-            to { opacity: 0; }
+            resize: none;
         }
     </style>
 </head>
@@ -542,15 +522,15 @@
         </div>
         <div class="player-list">
             <div class="player-slot">
-                <div class="player-avatar"></div>
+                <div class="player-avatar"><img src="https://i.pinimg.com/originals/61/93/18/619318d8f1d4e7d9f4c5f7c8f9b1c3d2.png" alt="Avatar"></div>
                 <input class="player-name" id="player1Name" maxlength="12" value="Tú"/>
             </div>
             <div class="player-slot">
-                <div class="player-avatar"></div>
+                <div class="player-avatar"><img src="https://i.pinimg.com/originals/61/93/18/619318d8f1d4e7d9f4c5f7c8f9b1c3d2.png" alt="Avatar"></div>
                 <input class="player-name" id="player2Name" maxlength="12" value="Esperando..."/>
             </div>
             <div class="player-slot">
-                <div class="player-avatar"></div>
+                <div class="player-avatar"><img src="https://i.pinimg.com/originals/61/93/18/619318d8f1d4e7d9f4c5f7c8f9b1c3d2.png" alt="Avatar"></div>
                 <input class="player-name" id="player3Name" maxlength="12" value="Esperando..."/>
             </div>
         </div>
@@ -597,8 +577,10 @@
                         </div>
                     </div>
                 </div>
-                <!-- Botón de siguiente ronda (solo para host) -->
-                <button class="next-wave-button" id="nextWaveBtn">Siguiente Ronda</button>
+                <div class="ui-section host-controls" id="hostControls">
+                    <h3>Host</h3>
+                    <button class="host-button" id="nextWaveBtn">Siguiente Ronda</button>
+                </div>
             </div>
             <!-- Panel de mejoras (oculto por defecto) -->
             <div class="upgrade-panel" id="upgradePanel">
@@ -608,6 +590,10 @@
                 <div class="upgrade-option" data-upgrade="range">Rango (+10%) - $100</div>
                 <div class="upgrade-option" data-upgrade="special">Ataque Especial - $300</div>
             </div>
+            <!-- Previsualización de torre -->
+            <div class="tower-preview" id="towerPreview" style="display: none;"></div>
+            <div class="range-preview" id="rangePreview" style="display: none;"></div>
+            <div class="placement-preview" id="placementPreview" style="display: none;"></div>
         </div>
     </div>
     <!-- Game Over Overlay -->
@@ -628,10 +614,11 @@
         <div class="modal-content">
             <h2>Créditos</h2>
             <p><strong>Desarrollado por:</strong> Equipo Miku Defense</p>
-            <p><strong>Arte y Diseño:</strong> PixelArt Studio</p>
+            <p><strong>Arte y Diseño:</strong> Pixel Art Studio</p>
             <p><strong>Música:</strong> Synthwave Collective</p>
-            <p><strong>Concepto Original:</strong> Inspirado en los juegos clásicos de defensa</p>
-            <p><strong>Pruebas:</strong> Comunidad de jugadores</p>
+            <p><strong>Programación:</strong> Tower Defense Dev Team</p>
+            <p><strong>Gracias especiales:</strong> A nuestra comunidad de jugadores</p>
+            <textarea readonly id="creditsText">Miku Defense es un juego de torres que combina elementos clásicos del género con un estilo visual retro pixel art. Desarrollado con pasión por los juegos de estrategia, este proyecto es el resultado de meses de trabajo y dedicación para ofrecer la mejor experiencia de juego multijugador.</textarea>
             <button id="closeCreditsBtn">Cerrar</button>
         </div>
     </div>
@@ -652,8 +639,9 @@
         let gameOverState = false;
         let isHost = false;
         let towerPreview = null;
-        let rangeIndicator = null;
-        let placingTower = false;
+        let rangePreview = null;
+        let placementPreview = null;
+        let gameInterval = null;
         
         // Elementos del DOM
         const mainMenu = document.getElementById('mainMenu');
@@ -674,7 +662,11 @@
         const gameOverOverlay = document.getElementById('gameOverOverlay');
         const gameOverStats = document.getElementById('gameOverStats');
         const restartGameBtn = document.getElementById('restartGameBtn');
+        const startGameBtn = document.getElementById('startGameBtn');
         const nextWaveBtn = document.getElementById('nextWaveBtn');
+        const towerPreviewEl = document.getElementById('towerPreview');
+        const rangePreviewEl = document.getElementById('rangePreview');
+        const placementPreviewEl = document.getElementById('placementPreview');
         
         // Configuración del juego
         const PIXEL_SIZE = 8; // Tamaño de cada "píxel" del mapa
@@ -897,157 +889,19 @@
             }
         };
 
-        // Torre sprites (arriba y abajo)
+        // Torre sprites
         const towerSprites = {
             miku: {
-                top: {
-                    draw: function(ctx, x, y) {
-                        // Miku viendo hacia abajo (desde arriba)
-                        ctx.fillStyle = '#39c5bb';
-                        ctx.fillRect(x + 8, y + 8, 16, 24);
-                        // Cabeza
-                        ctx.fillStyle = '#fff';
-                        ctx.fillRect(x + 10, y + 6, 12, 8);
-                        // Pelo
-                        ctx.fillStyle = '#39c5bb';
-                        ctx.fillRect(x + 8, y + 4, 16, 6);
-                        ctx.fillRect(x + 6, y + 6, 4, 4);
-                        ctx.fillRect(x + 22, y + 6, 4, 4);
-                        // Ojos
-                        ctx.fillStyle = 'black';
-                        ctx.fillRect(x + 14, y + 9, 2, 2);
-                        ctx.fillRect(x + 18, y + 9, 2, 2);
-                        // Bordes
-                        ctx.strokeStyle = 'black';
-                        ctx.lineWidth = 1;
-                        ctx.strokeRect(x + 8, y + 8, 16, 24);
-                        ctx.strokeRect(x + 10, y + 6, 12, 8);
-                        ctx.strokeRect(x + 8, y + 4, 16, 6);
-                    }
-                },
-                bottom: {
-                    draw: function(ctx, x, y) {
-                        // Miku de espaldas (vista desde abajo)
-                        ctx.fillStyle = '#39c5bb';
-                        ctx.fillRect(x + 8, y + 8, 16, 24);
-                        // Cabeza
-                        ctx.fillStyle = '#fff';
-                        ctx.fillRect(x + 10, y + 6, 12, 8);
-                        // Pelo largo
-                        ctx.fillStyle = '#39c5bb';
-                        ctx.fillRect(x + 10, y + 14, 12, 16);
-                        // Ojos
-                        ctx.fillStyle = 'black';
-                        ctx.fillRect(x + 14, y + 9, 2, 2);
-                        ctx.fillRect(x + 18, y + 9, 2, 2);
-                        // Bordes
-                        ctx.strokeStyle = 'black';
-                        ctx.lineWidth = 1;
-                        ctx.strokeRect(x + 8, y + 8, 16, 24);
-                        ctx.strokeRect(x + 10, y + 6, 12, 8);
-                        ctx.strokeRect(x + 10, y + 14, 12, 16);
-                    }
-                }
+                front: 'https://i.pinimg.com/originals/9e/5d/5e/9e5d5e8d8f9f3e3e3e3e3e3e3e3e3e3e.png',
+                back: 'https://i.pinimg.com/originals/9e/5d/5e/9e5d5e8d8f9f3e3e3e3e3e3e3e3e3e3e.png'
             },
             teto: {
-                top: {
-                    draw: function(ctx, x, y) {
-                        // Teto viendo hacia abajo
-                        ctx.fillStyle = '#ff9ec6';
-                        ctx.fillRect(x + 8, y + 8, 16, 24);
-                        // Cabeza
-                        ctx.fillStyle = '#fff';
-                        ctx.fillRect(x + 10, y + 6, 12, 8);
-                        // Pelo rosa
-                        ctx.fillStyle = '#ff9ec6';
-                        ctx.fillRect(x + 8, y + 4, 16, 6);
-                        ctx.fillRect(x + 6, y + 6, 4, 4);
-                        ctx.fillRect(x + 22, y + 6, 4, 4);
-                        // Ojos
-                        ctx.fillStyle = 'black';
-                        ctx.fillRect(x + 14, y + 9, 2, 2);
-                        ctx.fillRect(x + 18, y + 9, 2, 2);
-                        // Bordes
-                        ctx.strokeStyle = 'black';
-                        ctx.lineWidth = 1;
-                        ctx.strokeRect(x + 8, y + 8, 16, 24);
-                        ctx.strokeRect(x + 10, y + 6, 12, 8);
-                        ctx.strokeRect(x + 8, y + 4, 16, 6);
-                    }
-                },
-                bottom: {
-                    draw: function(ctx, x, y) {
-                        // Teto de espaldas
-                        ctx.fillStyle = '#ff9ec6';
-                        ctx.fillRect(x + 8, y + 8, 16, 24);
-                        // Cabeza
-                        ctx.fillStyle = '#fff';
-                        ctx.fillRect(x + 10, y + 6, 12, 8);
-                        // Pelo largo rosa
-                        ctx.fillStyle = '#ff9ec6';
-                        ctx.fillRect(x + 10, y + 14, 12, 16);
-                        // Ojos
-                        ctx.fillStyle = 'black';
-                        ctx.fillRect(x + 14, y + 9, 2, 2);
-                        ctx.fillRect(x + 18, y + 9, 2, 2);
-                        // Bordes
-                        ctx.strokeStyle = 'black';
-                        ctx.lineWidth = 1;
-                        ctx.strokeRect(x + 8, y + 8, 16, 24);
-                        ctx.strokeRect(x + 10, y + 6, 12, 8);
-                        ctx.strokeRect(x + 10, y + 14, 12, 16);
-                    }
-                }
+                front: 'https://i.pinimg.com/originals/8f/5d/5e/8f5d5e8d8f9f3e3e3e3e3e3e3e3e3e3e.png',
+                back: 'https://i.pinimg.com/originals/8f/5d/5e/8f5d5e8d8f9f3e3e3e3e3e3e3e3e3e3e.png'
             },
             neru: {
-                top: {
-                    draw: function(ctx, x, y) {
-                        // Neru viendo hacia abajo
-                        ctx.fillStyle = '#ffcc22';
-                        ctx.fillRect(x + 8, y + 8, 16, 24);
-                        // Cabeza
-                        ctx.fillStyle = '#fff';
-                        ctx.fillRect(x + 10, y + 6, 12, 8);
-                        // Pelo amarillo
-                        ctx.fillStyle = '#ffcc22';
-                        ctx.fillRect(x + 8, y + 4, 16, 6);
-                        ctx.fillRect(x + 6, y + 6, 4, 4);
-                        ctx.fillRect(x + 22, y + 6, 4, 4);
-                        // Ojos
-                        ctx.fillStyle = 'black';
-                        ctx.fillRect(x + 14, y + 9, 2, 2);
-                        ctx.fillRect(x + 18, y + 9, 2, 2);
-                        // Bordes
-                        ctx.strokeStyle = 'black';
-                        ctx.lineWidth = 1;
-                        ctx.strokeRect(x + 8, y + 8, 16, 24);
-                        ctx.strokeRect(x + 10, y + 6, 12, 8);
-                        ctx.strokeRect(x + 8, y + 4, 16, 6);
-                    }
-                },
-                bottom: {
-                    draw: function(ctx, x, y) {
-                        // Neru de espaldas
-                        ctx.fillStyle = '#ffcc22';
-                        ctx.fillRect(x + 8, y + 8, 16, 24);
-                        // Cabeza
-                        ctx.fillStyle = '#fff';
-                        ctx.fillRect(x + 10, y + 6, 12, 8);
-                        // Pelo largo amarillo
-                        ctx.fillStyle = '#ffcc22';
-                        ctx.fillRect(x + 10, y + 14, 12, 16);
-                        // Ojos
-                        ctx.fillStyle = 'black';
-                        ctx.fillRect(x + 14, y + 9, 2, 2);
-                        ctx.fillRect(x + 18, y + 9, 2, 2);
-                        // Bordes
-                        ctx.strokeStyle = 'black';
-                        ctx.lineWidth = 1;
-                        ctx.strokeRect(x + 8, y + 8, 16, 24);
-                        ctx.strokeRect(x + 10, y + 6, 12, 8);
-                        ctx.strokeRect(x + 10, y + 14, 12, 16);
-                    }
-                }
+                front: 'https://i.pinimg.com/originals/7f/5d/5e/7f5d5e8d8f9f3e3e3e3e3e3e3e3e3e3e.png',
+                back: 'https://i.pinimg.com/originals/7f/5d/5e/7f5d5e8d8f9f3e3e3e3e3e3e3e3e3e3e.png'
             }
         };
 
@@ -1057,6 +911,19 @@
         }
         
         function init() {
+            // Inicializar previsualizaciones
+            towerPreview = document.createElement('div');
+            towerPreview.className = 'tower-preview';
+            towerPreviewEl.appendChild(towerPreview);
+            
+            rangePreview = document.createElement('div');
+            rangePreview.className = 'range-preview';
+            rangePreviewEl.appendChild(rangePreview);
+            
+            placementPreview = document.createElement('div');
+            placementPreview.className = 'placement-preview';
+            placementPreviewEl.appendChild(placementPreview);
+            
             // Event listeners para los botones del menú
             document.getElementById('createRoomBtn').addEventListener('click', createRoom);
             document.getElementById('joinRoomBtn').addEventListener('click', joinRoom);
@@ -1068,21 +935,19 @@
             document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
             document.getElementById('closeCreditsBtn').addEventListener('click', closeCredits);
             document.getElementById('restartGameBtn').addEventListener('click', restartGame);
-            document.getElementById('nextWaveBtn').addEventListener('click', startNextWave);
+            document.getElementById('nextWaveBtn').addEventListener('click', hostStartWave);
             
             // Configurar torres seleccionables
             document.querySelectorAll('.tower-option').forEach(option => {
                 option.addEventListener('click', function() {
-                    if (gameRunning && !gameOverState) {
-                        selectedTower = this.getAttribute('data-tower');
-                        startPlacingTower();
-                    }
+                    selectedTower = this.getAttribute('data-tower');
+                    showTowerPreview();
                 });
             });
             
             // Configurar clic en el mapa para torres
             gameMap.addEventListener('click', function(e) {
-                if (placingTower && !gameOverState) {
+                if (selectedTower && gameRunning && !gameOverState) {
                     const rect = gameCanvas.getBoundingClientRect();
                     const x = e.clientX - rect.left;
                     const y = e.clientY - rect.top;
@@ -1090,21 +955,77 @@
                 }
             });
             
-            // Mover la torre con el mouse
-            gameMap.addEventListener('mousemove', function(e) {
-                if (placingTower) {
-                    const rect = gameCanvas.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
-                    updateTowerPreview(x, y);
-                }
-            });
+            // Mover previsualización con el mouse
+            document.addEventListener('mousemove', updateTowerPreview);
             
-            // Cancelar colocación con clic derecho
-            gameMap.addEventListener('contextmenu', function(e) {
-                e.preventDefault();
-                cancelPlacingTower();
-            });
+            // Ocultar previsualización al salir del mapa
+            gameMap.addEventListener('mouseleave', hideTowerPreview);
+        }
+        
+        function showTowerPreview() {
+            if (!selectedTower) return;
+            
+            const towerType = selectedTower;
+            towerPreview.style.display = 'block';
+            towerPreview.className = `tower-preview ${towerType}`;
+            
+            // Actualizar rango
+            const tower = towers.find(t => t.type === towerType);
+            const range = tower ? tower.range : 100;
+            rangePreview.style.display = 'block';
+            rangePreview.style.width = `${range * 2}px`;
+            rangePreview.style.height = `${range * 2}px`;
+            
+            updateTowerPreview();
+        }
+        
+        function updateTowerPreview(e) {
+            if (!selectedTower || !gameRunning || gameOverState) {
+                hideTowerPreview();
+                return;
+            }
+            
+            let x, y;
+            if (e) {
+                const rect = gameCanvas.getBoundingClientRect();
+                x = e.clientX - rect.left;
+                y = e.clientY - rect.top;
+            } else {
+                // Si no hay evento, usar posición del mouse
+                const mousePos = getMousePosition();
+                x = mousePos.x;
+                y = mousePos.y;
+            }
+            
+            // Actualizar posiciones
+            towerPreview.style.left = `${x}px`;
+            towerPreview.style.top = `${y}px`;
+            rangePreview.style.left = `${x}px`;
+            rangePreview.style.top = `${y}px`;
+            
+            // Actualizar color de previsualización de colocación
+            if (isPointOnPath(x, y, 40)) {
+                placementPreview.style.backgroundColor = 'rgba(255, 0, 0, 0.5)';
+                placementPreview.style.borderColor = 'red';
+            } else {
+                placementPreview.style.backgroundColor = 'rgba(0, 255, 0, 0.5)';
+                placementPreview.style.borderColor = 'green';
+            }
+            
+            placementPreview.style.display = 'block';
+            placementPreview.style.left = `${x}px`;
+            placementPreview.style.top = `${y}px`;
+        }
+        
+        function hideTowerPreview() {
+            towerPreview.style.display = 'none';
+            rangePreview.style.display = 'none';
+            placementPreview.style.display = 'none';
+        }
+        
+        function getMousePosition() {
+            // Simular posición del mouse (en un entorno real, esto vendría del evento mousemove)
+            return { x: 400, y: 300 };
         }
         
         // NUEVO: Mapa de pixel art bosque detallado con bordes negros finos
@@ -1372,139 +1293,34 @@
         }
         
         // Lógica para colocar torres
-        function startPlacingTower() {
-            if (gameOverState) return;
-            placingTower = true;
-            createTowerPreview();
-            createRangeIndicator();
-        }
-        
-        function createTowerPreview() {
-            if (towerPreview) {
-                document.body.removeChild(towerPreview);
-            }
-            
-            towerPreview = document.createElement('div');
-            towerPreview.className = `tower-preview ${selectedTower}`;
-            towerPreview.style.width = '32px';
-            towerPreview.style.height = '32px';
-            
-            // Crear canvas para el sprite
-            const spriteCanvas = document.createElement('canvas');
-            spriteCanvas.width = 32;
-            spriteCanvas.height = 32;
-            spriteCanvas.style.width = '32px';
-            spriteCanvas.style.height = '32px';
-            const spriteCtx = spriteCanvas.getContext('2d');
-            
-            // Dibujar el sprite (usamos la vista de arriba por defecto)
-            if (towerSprites[selectedTower] && towerSprites[selectedTower].top) {
-                towerSprites[selectedTower].top.draw(spriteCtx, 0, 0);
-            }
-            
-            towerPreview.appendChild(spriteCanvas);
-            document.body.appendChild(towerPreview);
-        }
-        
-        function createRangeIndicator() {
-            if (rangeIndicator) {
-                document.body.removeChild(rangeIndicator);
-            }
-            
-            rangeIndicator = document.createElement('div');
-            rangeIndicator.className = 'tower-range';
-            rangeIndicator.style.width = '200px';
-            rangeIndicator.style.height = '200px';
-            document.body.appendChild(rangeIndicator);
-        }
-        
-        function updateTowerPreview(x, y) {
-            if (!towerPreview || !rangeIndicator) return;
-            
-            // Actualizar posición
-            towerPreview.style.left = `${x}px`;
-            towerPreview.style.top = `${y}px`;
-            
-            // Actualizar rango
-            rangeIndicator.style.left = `${x - 100}px`;
-            rangeIndicator.style.top = `${y - 100}px`;
-            
-            // Validar colocación
-            if (isPointOnPath(x, y, 40)) {
-                towerPreview.classList.add('placement-invalid');
-                towerPreview.classList.remove('placement-valid');
-                rangeIndicator.style.borderColor = 'rgba(255, 0, 0, 0.5)';
-            } else {
-                towerPreview.classList.add('placement-valid');
-                towerPreview.classList.remove('placement-invalid');
-                rangeIndicator.style.borderColor = 'rgba(0, 255, 0, 0.5)';
-            }
-        }
-        
-        function cancelPlacingTower() {
-            placingTower = false;
-            if (towerPreview) {
-                document.body.removeChild(towerPreview);
-                towerPreview = null;
-            }
-            if (rangeIndicator) {
-                document.body.removeChild(rangeIndicator);
-                rangeIndicator = null;
-            }
-            selectedTower = null;
-        }
-        
         function placeTowerAt(x, y) {
             if (gameOverState) return;
-            
-            // Validar que no esté en el camino
-            if (isPointOnPath(x, y, 40)) {
-                showMessage("No puedes construir en el camino.");
-                cancelPlacingTower();
-                return;
-            }
             
             const cost = getTowerCost(selectedTower);
             if (coins < cost) {
                 showMessage("Monedas insuficientes.");
-                cancelPlacingTower();
+                return;
+            }
+            
+            // Evitar colocar torres en el camino
+            if (isPointOnPath(x, y, 40)) {
+                showMessage("No puedes construir en el camino.");
                 return;
             }
             
             coins -= cost;
             updateCoinDisplay();
-            
-            // Determinar si la torre está en la parte superior o inferior del mapa
-            const isTop = y < 300;
-            const view = isTop ? 'top' : 'bottom';
-            
-            const towerElement = document.createElement('div');
-            towerElement.className = `tower ${selectedTower}`;
-            towerElement.style.left = `${x}px`;
-            towerElement.style.top = `${y}px`;
-            towerElement.setAttribute('data-type', selectedTower);
-            towerElement.setAttribute('data-view', view);
-            towerElement.addEventListener('click', showUpgrades);
-            gameMap.appendChild(towerElement);
-            
-            // Crear sprite para la torre
-            const spriteCanvas = document.createElement('canvas');
-            spriteCanvas.width = 32;
-            spriteCanvas.height = 32;
-            spriteCanvas.style.width = '32px';
-            spriteCanvas.style.height = '32px';
-            const spriteCtx = spriteCanvas.getContext('2d');
-            
-            // Dibujar el sprite según la posición
-            if (towerSprites[selectedTower] && towerSprites[selectedTower][view]) {
-                towerSprites[selectedTower][view].draw(spriteCtx, 0, 0);
-            }
-            
-            towerElement.appendChild(spriteCanvas);
+            const tower = document.createElement('div');
+            tower.className = `tower ${selectedTower}`;
+            tower.style.left = `${x}px`;
+            tower.style.top = `${y}px`;
+            tower.setAttribute('data-type', selectedTower);
+            tower.addEventListener('click', showUpgrades);
+            gameMap.appendChild(tower);
             
             // Añadir a la lógica del juego
             towers.push({
-                element: towerElement,
+                element: tower,
                 type: selectedTower,
                 x: x,
                 y: y,
@@ -1512,11 +1328,11 @@
                 range: 100,
                 cooldown: 1000,
                 lastShot: 0,
-                level: 1,
-                view: view
+                level: 1
             });
             
-            cancelPlacingTower();
+            selectedTower = null;
+            hideTowerPreview();
         }
         
         // Función para verificar si un punto está cerca del camino
@@ -1559,7 +1375,7 @@
             upgradePanel.style.top = `${e.clientY - rect.top - upgradePanel.clientHeight - 10}px`;
             
             // Encontrar la torre en el array
-            const towerElement = e.target.closest('.tower');
+            const towerElement = e.target;
             const towerIndex = towers.findIndex(t => t.element === towerElement);
             
             document.querySelectorAll('.upgrade-option').forEach(option => {
@@ -1605,16 +1421,9 @@
         }
         
         // Lógica de oleadas de enemigos
-        function startNextWave() {
-            if (currentWave >= MAX_WAVES) {
-                showMessage("¡Has ganado el juego!");
-                return;
-            }
-            
-            startWave();
-        }
-        
         function startWave() {
+            if (gameOverState) return;
+            
             if (currentWave >= MAX_WAVES) {
                 showMessage("¡Has ganado el juego!");
                 return;
@@ -1641,10 +1450,15 @@
             if (currentWave < MAX_WAVES) {
                 setTimeout(() => {
                     if (enemies.length === 0 && !gameOverState) {
-                        showMessage("Todos los enemigos eliminados. Esperando al anfitrión para la siguiente ronda.");
+                        showMessage("Oleada completada. Preparando siguiente ronda...");
                     }
                 }, (enemyCount * 800) + 3000);
             }
+        }
+        
+        function hostStartWave() {
+            if (!isHost || gameOverState) return;
+            startWave();
         }
         
         function spawnEnemy(type = 'slime') {
@@ -1893,9 +1707,6 @@
             gameOverState = true;
             gameRunning = false;
             
-            // Ocultar botón de siguiente ronda
-            nextWaveBtn.style.display = 'none';
-            
             // Mostrar overlay de Game Over
             gameOverStats.textContent = `Llegaste a la oleada ${currentWave}`;
             gameOverOverlay.style.display = 'flex';
@@ -1936,25 +1747,31 @@
             currentWave = 0;
             gameOverState = false;
             gameRunning = false;
-            isHost = false;
             
             // Actualizar UI
             updateCoinDisplay();
             healthCount.textContent = health;
             waveCount.textContent = `0/${MAX_WAVES}`;
-            nextWaveBtn.style.display = 'none';
         }
         
         // Mensajes personalizados
         function showMessage(text) {
-            // Evitar múltiples mensajes
-            const existing = document.querySelector('.message-box');
-            if (existing) {
-                existing.remove();
-            }
-            
             const msgBox = document.createElement('div');
-            msgBox.className = 'message-box';
+            msgBox.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(0, 0, 0, 0.8);
+                color: white;
+                padding: 1rem 2rem;
+                border: 2px solid var(--accent-color);
+                z-index: 1000;
+                font-family: 'Press Start 2P', cursive;
+                text-align: center;
+                animation: fade-in 0.5s forwards;
+                border-radius: 5px;
+            `;
             msgBox.textContent = text;
             document.body.appendChild(msgBox);
             
@@ -1975,7 +1792,6 @@
             isHost = true;
             updateLobbyUI();
             showLobby();
-            showMessage("Código de sala: " + roomCode + ". Comparte este código con tus amigos.");
         }
         
         function joinRoom() {
@@ -1989,7 +1805,6 @@
                 isHost = false;
                 updateLobbyUI();
                 showLobby();
-                showMessage("Te has unido a la sala " + roomCode);
             }
         }
         
@@ -2012,12 +1827,15 @@
             playerInputs.forEach((el, i) => {
                 if (players[i]) {
                     el.value = players[i].name;
-                    el.disabled = (i !== 0 || !isHost); // Solo el primer jugador puede editar su nombre, y solo el host puede editar
+                    el.disabled = !(isHost && i === 0); // Solo el host puede editar el primer nombre
                 } else {
                     el.value = "Esperando...";
                     el.disabled = true;
                 }
             });
+            
+            // Mostrar/ocultar botón de inicio según si eres el host
+            startGameBtn.style.display = isHost ? 'block' : 'none';
         }
         
         // Permite editar el nombre del jugador local en el lobby
@@ -2028,7 +1846,7 @@
         });
         
         function startGame() {
-            // Asegurar que todos los jugadores estén presentes
+            // Simular jugadores adicionales (para prueba)
             while (players.length < 3) {
                 players.push({ name: "Jugador " + (players.length + 1), isHost: false });
             }
@@ -2040,18 +1858,10 @@
             gameRunning = true;
             gameOverState = false;
             
-            // Mostrar botón de siguiente ronda solo para el host
-            if (isHost) {
-                nextWaveBtn.style.display = 'block';
-            }
+            // Mostrar controles de host si eres el anfitrión
+            document.getElementById('hostControls').style.display = isHost ? 'block' : 'none';
             
-            // Primera ronda después de 3 segundos
-            setTimeout(() => {
-                startWave();
-            }, 3000);
-            
-            requestAnimationFrame(towerLogic);
-            requestAnimationFrame(moveProjectiles);
+            showMessage("Juego iniciado! El anfitrión puede iniciar la primera ronda.");
         }
         
         // Funciones de navegación
@@ -2101,11 +1911,14 @@
         
         function saveProfile() {
             playerName = document.getElementById('playerNameInput').value.trim() || "Jugador";
-            if (players[0]) {
-                players[0].name = playerName;
+            const currentName = players.find(p => p.name === "Tú");
+            if (currentName) {
+                currentName.name = playerName;
+            } else {
+                players[0] = { name: playerName, isHost: isHost }; // Asegura que el primer jugador sea siempre el local
             }
+            updateLobbyUI();
             document.getElementById('profileModal').style.display = 'none';
-            showMessage("Perfil actualizado con éxito");
         }
         
         function showCredits() {
