@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Miku Defense - Tower Defense</title>
+    <!-- Incluye la biblioteca de Font Awesome para iconos de juego -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <!-- Incluye la biblioteca de Socket.IO para la conexión multijugador -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
     <style>
         :root {
             --primary-color: #6a5acd;
@@ -18,17 +22,25 @@
             --grass-color: #2e8b57;
         }
 
+        /* Utiliza 'Press Start 2P' para un estilo retro */
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             font-family: 'Press Start 2P', cursive;
+            user-select: none;
         }
 
         body {
             background-color: var(--background-dark);
             color: var(--text-color);
             overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
         }
 
         /* Menú Principal */
@@ -46,7 +58,7 @@
         }
 
         .menu-title {
-            font-size: 3rem;
+            font-size: clamp(2rem, 5vw, 3rem);
             margin-bottom: 2rem;
             text-shadow: 4px 4px 0px #000;
             color: var(--accent-color);
@@ -59,7 +71,7 @@
             border: 3px solid black;
             padding: 1rem 2rem;
             margin: 0.5rem;
-            font-size: 1.2rem;
+            font-size: clamp(0.8rem, 2vw, 1.2rem);
             cursor: pointer;
             transition: all 0.3s;
             position: relative;
@@ -78,7 +90,7 @@
             box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.5);
         }
 
-        /* lobby */
+        /* Lobby */
         .lobby-container {
             display: none;
             position: fixed;
@@ -90,31 +102,50 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            padding: 1rem;
+        }
+        
+        .lobby-header {
+            text-align: center;
+            margin-bottom: 2rem;
         }
 
-        .room-code {
-            font-size: 2rem;
-            margin-bottom: 1rem;
+        .room-info {
             background-color: rgba(0, 0, 0, 0.7);
             padding: 1rem;
             border: 3px solid var(--accent-color);
+            text-shadow: 2px 2px 0px #000;
+        }
+
+        .room-code {
+            font-size: clamp(1rem, 3vw, 2rem);
+            margin-bottom: 0.5rem;
+        }
+        
+        .player-count {
+            font-size: clamp(0.8rem, 2vw, 1.2rem);
+            color: #ccc;
         }
 
         .player-list {
             display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
             margin-bottom: 2rem;
         }
 
         .player-slot {
-            width: 100px;
-            height: 120px;
+            width: 120px;
+            height: 140px;
             background-color: rgba(0, 0, 0, 0.5);
-            margin: 0 0.5rem;
+            margin: 0.5rem;
             border: 2px dashed var(--text-color);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            text-align: center;
+            padding: 0.5rem;
         }
 
         .player-avatar {
@@ -125,70 +156,126 @@
             margin-bottom: 0.5rem;
         }
 
-        .player-name {
-            font-size: 0.8rem;
+        .player-name-input {
+            width: 100%;
+            background: none;
+            border: none;
+            outline: none;
             text-align: center;
+            color: var(--text-color);
+            font-family: 'Press Start 2P', cursive;
+            font-size: clamp(0.6rem, 1.5vw, 0.8rem);
+            padding: 0.2rem;
+            cursor: pointer;
+        }
+        
+        .player-name-input:disabled {
+            cursor: default;
+        }
+
+        /* Modales (perfil, créditos) */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 101;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: var(--background-dark);
+            padding: 2rem;
+            border: 3px solid var(--accent-color);
+            border-radius: 10px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .modal-content h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 0.8rem;
+            margin-bottom: 1rem;
+            background-color: #333;
+            border: 2px solid #555;
+            color: white;
+            font-family: inherit;
+        }
+
+        .modal-content button {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
         }
 
         /* Juego */
         .game-container {
             display: none;
-            width: 100%;
+            width: 100vw;
             height: 100vh;
             position: relative;
+            justify-content: center;
+            align-items: center;
         }
 
+        .game-wrapper {
+            display: flex;
+            border: 5px solid black;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            background-color: #000;
+        }
+        
         .game-map {
-            width: 100%;
-            height: 80%;
-            background: url('https://i.sstatic.net/BFjwi.png') no-repeat center center;
-            background-size: contain;
+            width: 800px;
+            height: 600px;
+            background: #2e8b57; /* color base, pero se sobreescribe por el canvas */
             position: relative;
             overflow: hidden;
         }
 
-        .path {
+        #gameCanvas {
             position: absolute;
-            background-color: var(--path-color);
-            opacity: 0.5;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
         }
-
-        .tower-spot {
-            position: absolute;
-            width: 40px;
-            height: 40px;
-            border: 1px dashed rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            cursor: pointer;
-        }
-
+        
         .tower {
             position: absolute;
             width: 32px;
             height: 32px;
             transform: translate(-50%, -50%);
             z-index: 10;
-            cursor: move;
+            cursor: pointer;
         }
-
-        .tower.miku {
-            background-color: #39c5bb;
-            border: 2px solid black;
-            border-radius: 50%;
+        .tower img {
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated; /* Para que la imagen se vea pixelada y no borrosa */
         }
-
-        .tower.teto {
-            background-color: #ff9ec6;
-            border: 2px solid black;
-            border-radius: 50%;
+        .enemy {
+            position: absolute;
+            width: 32px; /* Tamaño 32x32 para los enemigos */
+            height: 32px;
+            z-index: 8;
+            transform: translate(-50%, -50%);
+            image-rendering: pixelated;
         }
-
-        .tower.neru {
-            background-color: #ffcc22;
-            border: 2px solid black;
-            border-radius: 50%;
-        }
-
         .projectile {
             position: absolute;
             width: 8px;
@@ -197,95 +284,114 @@
             z-index: 5;
         }
 
-        .enemy {
-            position: absolute;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            z-index: 8;
-            transform: translate(-50%, -50%);
+        /* UI del juego */
+        .game-ui {
+            width: 200px;
+            height: 600px;
+            background-color: var(--background-dark);
+            border-left: 3px solid var(--primary-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 1rem;
         }
 
-        /* UI */
-        .game-ui {
+        .ui-section {
             width: 100%;
-            height: 20%;
-            background-color: var(--background-dark);
-            border-top: 3px solid var(--primary-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .ui-section h3 {
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            color: var(--accent-color);
+            text-align: center;
+        }
+
+        .status-bar {
             display: flex;
             justify-content: space-between;
-            padding: 0.5rem;
-        }
-
-        .health-display, .coin-display {
-            display: flex;
             align-items: center;
-            font-size: 1.2rem;
-        }
-
-        .health-icon {
-            color: var(--health-color);
-            margin-right: 0.5rem;
-        }
-
-        .coin-icon {
-            color: var(--coin-color);
-            margin-right: 0.5rem;
+            font-size: 1rem;
+            background: #333;
+            padding: 0.5rem;
+            border-radius: 5px;
+            margin-bottom: 0.5rem;
         }
 
         .tower-select {
             display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
         }
 
         .tower-option {
-            width: 50px;
-            height: 50px;
-            margin: 0 0.5rem;
+            width: 70px;
+            height: 70px;
             border: 2px solid black;
-            border-radius: 50%;
             cursor: pointer;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             position: relative;
+            font-size: 0.8rem;
+            transition: transform 0.2s;
+            overflow: hidden;
+            background-color: rgba(255, 255, 255, 0.1);
         }
-
+        .tower-option img {
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+        
         .tower-option:hover {
             transform: scale(1.1);
         }
 
-        .tower-option.miku {
-            background-color: #39c5bb;
-        }
-
-        .tower-option.teto {
-            background-color: #ff9ec6;
-        }
-
-        .tower-option.neru {
-            background-color: #ffcc22;
-        }
-
         .tower-cost {
             position: absolute;
-            bottom: -15px;
-            font-size: 0.7rem;
+            bottom: 0;
+            background-color: rgba(0,0,0,0.6);
+            width: 100%;
+            text-align: center;
+            font-size: 0.6rem;
             color: var(--coin-color);
+            text-shadow: 1px 1px 0px #000;
         }
 
         .upgrade-panel {
             position: absolute;
-            right: 10px;
-            top: 10px;
-            background-color: rgba(0, 0, 0, 0.7);
+            background-color: rgba(0, 0, 0, 0.9);
             padding: 1rem;
             border: 2px solid var(--primary-color);
             display: none;
+            z-index: 20;
+            box-shadow: 0 0 10px #000;
+        }
+
+        .upgrade-panel h3 {
+            color: var(--accent-color);
+            margin-bottom: 0.5rem;
+            text-align: center;
         }
 
         .upgrade-option {
-            margin: 0.5rem 0;
+            background-color: #444;
+            color: white;
+            padding: 0.5rem 1rem;
+            margin-bottom: 0.5rem;
             cursor: pointer;
+            font-size: 0.7rem;
+            text-align: center;
+            transition: background 0.2s;
+        }
+        
+        .upgrade-option:hover {
+            background-color: #666;
         }
 
         /* Animaciones */
@@ -305,158 +411,36 @@
             animation: float 3s ease-in-out infinite;
         }
 
-        /* Créditos pantalla tipo lobby */
-        .credits-container {
-            display: none;
-            position: fixed;
-            width: 100vw;
-            height: 100vh;
-            background: url('https://i.pinimg.com/originals/4c/23/98/4c2398e6be397bb08b5cb70b2192d730.gif') no-repeat center center;
-            background-size: cover;
-            z-index: 200;
-            overflow: hidden;
-            justify-content: center;
-            align-items: center;
+        .fade-in {
+            animation: fadeIn 0.5s forwards;
         }
-        .credits-scroll-area {
-            position: absolute;
-            left: 0; right: 0; top: 0; bottom: 0;
-            width: 100vw;
-            height: 100vh;
-            overflow-y: auto;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            pointer-events: auto;
-        }
-        .credits-rolling {
-            position: relative;
-            width: 600px;
-            max-width: 90vw;
-            margin: 0 auto;
-            padding: 60px 0 60px 0;
-            color: #fff;
-            font-size: 1.1rem;
-            text-align: center;
-            z-index: 2;
-        }
-        .credits-title {
-            font-size: 2.2rem;
-            color: var(--accent-color);
-            margin-bottom: 1.5rem;
-            text-shadow: 2px 2px 0 #000;
-        }
-        .credits-section {
-            margin-bottom: 1.2rem;
-        }
-        .credits-section strong {
-            color: var(--primary-color);
-        }
-        .credits-list {
-            margin: 0.5rem 0 0 0;
-            padding: 0;
-            list-style: none;
-            font-size: 1rem;
-        }
-        .credits-btn {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            bottom: 30px;
-            background: var(--accent-color);
-            color: #fff;
-            border: 2px solid #000;
-            border-radius: 8px;
-            padding: 0.7rem 2.2rem;
-            font-size: 1.1rem;
-            cursor: pointer;
-            font-family: inherit;
-            transition: background 0.2s, transform 0.2s;
-            z-index: 10;
-        }
-        .credits-btn:hover {
-            background: var(--button-hover);
-            transform: translateX(-50%) scale(1.05);
-        }
-        .credits-side-img {
-            position: absolute;
-            width: 140px;
-            height: 140px;
-            object-fit: cover;
-            border-radius: 18px;
-            border: 3px solid var(--primary-color);
-            box-shadow: 0 0 18px #000a;
-            z-index: 1;
-            opacity: 0.92;
-            background: #222;
-        }
-        .credits-side-img.left {
-            left: 30px;
-            top: 20%;
-        }
-        .credits-side-img.right {
-            right: 30px;
-            top: 60%;
-        }
-        .credits-side-img2 {
-            position: absolute;
-            width: 120px;
-            height: 120px;
-            object-fit: cover;
-            border-radius: 18px;
-            border: 2px solid var(--accent-color);
-            box-shadow: 0 0 10px #000a;
-            z-index: 1;
-            opacity: 0.92;
-            background: #222;
-        }
-        .credits-side-img2.left {
-            left: 40px;
-            top: 65%;
-        }
-        .credits-side-img2.right {
-            right: 40px;
-            top: 30%;
-        }
-        /* Fondo oscuro para mejorar legibilidad */
-        .credits-bg {
-            position: absolute;
-            left: 0; top: 0; right: 0; bottom: 0;
-            background: rgba(26,26,46,0.82);
-            z-index: 0;
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
     </style>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- Menú Principal -->
     <div class="main-menu" id="mainMenu">
         <h1 class="menu-title floating">Miku Defense</h1>
         <button class="menu-button" id="createRoomBtn">Crear Sala</button>
-        <button class="menu-button" id="joinRoomBtn">Entrar a Sala</button>
-        <button class="menu-button" id="profileBtn">Perfil</button>
+        <button class="menu-button" id="joinRoomBtn">Unirse a Sala</button>
+        <button class="menu-button" id="profileBtn">Mi Perfil</button>
         <button class="menu-button" id="shopBtn">Tienda</button>
-        <button class="menu-button" id="settingsBtn">Configuración</button>
         <button class="menu-button" id="creditsBtn">Créditos</button>
     </div>
 
     <!-- Lobby -->
     <div class="lobby-container" id="lobbyContainer">
-        <h2>Sala de Espera</h2>
-        <div class="room-code" id="roomCodeDisplay">Código: ABCD12</div>
-        <div class="player-list">
-            <div class="player-slot">
-                <div class="player-avatar"></div>
-                <div class="player-name" id="player1Name">Jugador 1</div>
+        <div class="lobby-header">
+            <div class="room-info">
+                <div class="room-code" id="roomCodeDisplay">Código: ---</div>
+                <div class="player-count" id="playerCountDisplay">Jugadores: 0/3</div>
             </div>
-            <div class="player-slot">
-                <div class="player-avatar"></div>
-                <div class="player-name" id="player2Name">Esperando...</div>
-            </div>
-            <div class="player-slot">
-                <div class="player-avatar"></div>
-                <div class="player-name" id="player3Name">Esperando...</div>
-            </div>
+        </div>
+        <div class="player-list" id="playerList">
+            <!-- Los jugadores se renderizarán aquí dinámicamente -->
         </div>
         <button class="menu-button" id="startGameBtn">Iniciar Juego</button>
         <button class="menu-button" id="leaveLobbyBtn">Salir del Lobby</button>
@@ -464,142 +448,84 @@
 
     <!-- Juego -->
     <div class="game-container" id="gameContainer">
-        <div class="game-map" id="gameMap">
-            <!-- El camino se generará dinámicamente -->
-            <!-- Las torres y enemigos se añadirán dinámicamente -->
+        <div class="game-wrapper">
+            <div class="game-map" id="gameMap">
+                <canvas id="gameCanvas"></canvas>
+            </div>
+            
+            <div class="game-ui">
+                <div class="ui-section">
+                    <h3>Estado</h3>
+                    <div class="status-bar">
+                        <span>❤️ Vida:</span>
+                        <span id="healthCount">100</span>
+                    </div>
+                    <div class="status-bar">
+                        <span>🪙 Monedas:</span>
+                        <span id="coinCount">500</span>
+                    </div>
+                    <div class="status-bar">
+                        <span>Ronda:</span>
+                        <span id="waveCount">0/20</span>
+                    </div>
+                </div>
+
+                <div class="ui-section">
+                    <h3>Torres</h3>
+                    <div class="tower-select">
+                        <div class="tower-option" data-tower="miku">
+                            <img src="https://placehold.co/70x70/39c5bb/ffffff?text=Miku" alt="Miku" />
+                            <div class="tower-cost">$100</div>
+                        </div>
+                        <div class="tower-option" data-tower="teto">
+                            <img src="https://placehold.co/70x70/ff9ec6/ffffff?text=Teto" alt="Teto" />
+                            <div class="tower-cost">$150</div>
+                        </div>
+                        <div class="tower-option" data-tower="neru">
+                            <img src="https://placehold.co/70x70/ffcc22/ffffff?text=Neru" alt="Neru" />
+                            <div class="tower-cost">$200</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel de mejoras (oculto por defecto) -->
+            <div class="upgrade-panel" id="upgradePanel">
+                <h3>Mejoras</h3>
+                <div class="upgrade-option" data-upgrade="damage">Daño (+10%) - $100</div>
+                <div class="upgrade-option" data-upgrade="speed">Velocidad (+10%) - $100</div>
+                <div class="upgrade-option" data-upgrade="range">Rango (+10%) - $100</div>
+                <div class="upgrade-option" data-upgrade="special">Ataque Especial - $300</div>
+            </div>
         </div>
-        <div class="game-ui">
-            <div class="health-display">
-                <span class="health-icon">❤️</span>
-                <span id="healthCount">100</span>
-            </div>
-            <div class="tower-select">
-                <div class="tower-option miku" data-tower="miku">
-                    Miku
-                    <div class="tower-cost">$100</div>
-                </div>
-                <div class="tower-option teto" data-tower="teto">
-                    Teto
-                    <div class="tower-cost">$150</div>
-                </div>
-                <div class="tower-option neru" data-tower="neru">
-                    Neru
-                    <div class="tower-cost">$200</div>
-                </div>
-            </div>
-            <div class="coin-display">
-                <span class="coin-icon">🪙</span>
-                <span id="coinCount">500</span>
-            </div>
+    </div>
+    
+    <!-- Modales para Perfil, Unirse y Créditos -->
+    <div class="modal" id="profileModal">
+        <div class="modal-content">
+            <h2>Mi Perfil</h2>
+            <input type="text" id="playerNameInput" placeholder="Tu nombre" maxlength="12">
+            <button id="saveProfileBtn">Guardar</button>
         </div>
-        <div class="upgrade-panel" id="upgradePanel">
-            <h3>Mejoras</h3>
-            <div class="upgrade-option" data-upgrade="damage">Daño (+10%) - $100</div>
-            <div class="upgrade-option" data-upgrade="speed">Velocidad (+10%) - $100</div>
-            <div class="upgrade-option" data-upgrade="range">Rango (+10%) - $100</div>
-            <div class="upgrade-option" data-upgrade="special">Ataque Especial - $300</div>
+    </div>
+    
+    <div class="modal" id="joinRoomModal">
+        <div class="modal-content">
+            <h2>Unirse a una Sala</h2>
+            <input type="text" id="roomCodeInput" placeholder="Código de la sala" maxlength="6">
+            <button id="joinRoomConfirmBtn">Unirse</button>
+            <button id="closeJoinRoomBtn">Cancelar</button>
         </div>
     </div>
 
-    <!-- Modal de Perfil -->
-    <div class="modal" id="profileModal" style="display: none;">
-        <h2>Perfil</h2>
-        <input type="text" id="playerNameInput" placeholder="Tu nombre">
-        <button id="saveProfileBtn">Guardar</button>
-    </div>
-
-    <!-- Créditos pantalla tipo lobby con animación y scroll -->
-    <div class="credits-container" id="creditsContainer">
-        <div class="credits-bg"></div>
-        <!-- Imágenes laterales, cambia src por tus URLs -->
-        <img class="credits-side-img left" src="https://i.imgur.com/9QeQK6v.png" alt="Miku" title="Miku (puedes cambiar la URL)">
-        <img class="credits-side-img right" src="https://i.imgur.com/8bFQK6v.png" alt="Teto" title="Teto (puedes cambiar la URL)">
-        <img class="credits-side-img2 left" src="https://i.imgur.com/6QeQK6v.png" alt="Neru" title="Neru (puedes cambiar la URL)">
-        <img class="credits-side-img2 right" src="https://i.imgur.com/7QeQK6v.png" alt="Mapa" title="Mapa (puedes cambiar la URL)">
-        <div class="credits-scroll-area" id="creditsScrollArea">
-            <div class="credits-rolling" id="creditsRolling">
-                <div class="credits-title">Créditos</div>
-                <div class="credits-section">
-                    <strong>Desarrollador Principal:</strong>
-                    <ul class="credits-list">
-                        <li>Steven (Programación, Diseño, UI)</li>
-                    </ul>
-                </div>
-                <div class="credits-section">
-                    <strong>Música:</strong>
-                    <ul class="credits-list">
-                        <li>Eliezer Beltran</li>
-                        <li>DECO*27 - Ghost Rule (Remix)</li>
-                        <li>kz(livetune) - Tell Your World</li>
-                    </ul>
-                </div>
-                <div class="credits-section">
-                    <strong>Sprites y Arte:</strong>
-                    <ul class="credits-list">
-                        <li>Adonis Enrique (Miku, Teto, Neru)</li>
-                        <li>OpenGameArt.org (Tiles, Enemigos)</li>
-                    </ul>
-                </div>
-                <div class="credits-section">
-                    <strong>Inspiraciones:</strong>
-                    <ul class="credits-list">
-                        <li>mesmerizer fan-made-game</li>
-                        <li>juegos de tower defense como:</li>
-                        <li>bloons TD battle 5 y 6</li>
-                        <li>toys tower defense</li>
-                    </ul>
-                </div>
-                <div class="credits-section">
-                    <strong>Recursos y Librerías:</strong>
-                    <ul class="credits-list">
-                        <li>Google Fonts: Press Start 2P</li>
-                        <li>Stack Overflow (ayuda en lógica y bugs)</li>
-                        <li>JavaScript Vanilla</li>
-                        <li>HTML5 + CSS3</li>
-                    </ul>
-                </div>
-                <div class="credits-section">
-                    <strong>Características del Juego:</strong>
-                    <ul class="credits-list">
-                        <li>Multijugador local simulado (lobby, salas)</li>
-                        <li>Oleadas de enemigos y torres mejorables</li>
-                        <li>Interfaz inspirada en Vocaloid y juegos retro</li>
-                        <li>Animaciones y efectos visuales personalizados</li>
-                        <li>Panel de mejoras para torres</li>
-                        <li>Diseño responsivo y controles intuitivos</li>
-                    </ul>
-                </div>
-                <div class="credits-section">
-                    <strong>Contacto y Redes:</strong>
-                    <ul class="credits-list">
-                        <li>GitHub: <a href="#" style="color:#ffd700;">[Tu GitHub]</a></li>
-                        <li>Twitter: <a href="#" style="color:#ffd700;">[Tu Twitter]</a></li>
-                        <li>Discord: <a href="#" style="color:#ffd700;">[Tu Discord]</a></li>
-                    </ul>
-                </div>
-                <div class="credits-section">
-                    <strong>Agradecimientos Especiales:</strong>
-                    <ul class="credits-list">
-                        <li>Comunidad Vocaloid</li>
-                        <li>Amigos y testers</li>
-                        <li>Usuarios que apoyaron el desarrollo</li>
-                    </ul>
-                </div>
-                <div class="credits-section" style="margin-top:2.5rem;">
-                    <em>¡Gracias por jugar Miku Defense!</em>
-                </div>
-            </div>
+    <div class="modal" id="creditsModal">
+        <div class="modal-content">
+            <h2>Créditos</h2>
+            <p><strong>Desarrollado por:</strong> [Tu Nombre]</p>
+            <p><strong>Arte y Diseño:</strong> [Colaborador 1]</p>
+            <p><strong>Música:</strong> [Colaborador 2]</p>
+            <button id="closeCreditsBtn">Cerrar</button>
         </div>
-        <button class="credits-btn" id="closeCreditsBtn2">Volver al Menú</button>
-    </div>
-
-    <!-- Modal de Créditos (antiguo, ahora oculto) -->
-    <div class="modal" id="creditsModal" style="display: none;">
-        <h2>Créditos</h2>
-        <p>Desarrollado por [Tu Nombre]</p>
-        <p>Música: [Artistas/Canción]</p>
-        <p>Sprites: [Artistas]</p>
-        <button id="closeCreditsBtn">Cerrar</button>
     </div>
 
     <script>
@@ -613,8 +539,21 @@
         let towers = [];
         let projectiles = [];
         let playerName = "Jugador";
-        let roomCode = "";
+        let roomCode = null;
         let players = [];
+        let socket = null;
+        let isGameActive = false;
+        
+        // Sprites de las torres (debes reemplazar estas URLs con tus propias imágenes PNG)
+        // Puedes usar una herramienta como https://www.piskelapp.com/ para crearlas
+        const towerSprites = {
+            miku_down: 'https://placehold.co/32x32/39c5bb/ffffff?text=Miku+Down',
+            miku_up: 'https://placehold.co/32x32/39c5bb/ffffff?text=Miku+Up',
+            teto_down: 'https://placehold.co/32x32/ff9ec6/ffffff?text=Teto+Down',
+            teto_up: 'https://placehold.co/32x32/ff9ec6/ffffff?text=Teto+Up',
+            neru_down: 'https://placehold.co/32x32/ffcc22/ffffff?text=Neru+Down',
+            neru_up: 'https://placehold.co/32x32/ffcc22/ffffff?text=Neru+Up',
+        };
 
         // Elementos del DOM
         const mainMenu = document.getElementById('mainMenu');
@@ -623,109 +562,393 @@
         const gameMap = document.getElementById('gameMap');
         const healthCount = document.getElementById('healthCount');
         const coinCount = document.getElementById('coinCount');
+        const waveCount = document.getElementById('waveCount');
         const roomCodeDisplay = document.getElementById('roomCodeDisplay');
-        const player1Name = document.getElementById('player1Name');
-        const player2Name = document.getElementById('player2Name');
-        const player3Name = document.getElementById('player3Name');
+        const playerCountDisplay = document.getElementById('playerCountDisplay');
+        const playerList = document.getElementById('playerList');
         const upgradePanel = document.getElementById('upgradePanel');
+        const gameCanvas = document.getElementById('gameCanvas');
+        const ctx = gameCanvas.getContext('2d');
 
-        // Configuración del mapa
+        // Configuración del juego
+        const MAP_WIDTH = 800;
+        const MAP_HEIGHT = 600;
+        const TILE_SIZE = 16;
+        const MAX_WAVES = 20;
+
+        gameCanvas.width = MAP_WIDTH;
+        gameCanvas.height = MAP_HEIGHT;
+        gameMap.style.width = `${MAP_WIDTH}px`;
+        gameMap.style.height = `${MAP_HEIGHT}px`;
+
+        // NUEVO: Coordenadas del camino para el mapa pixel art.
+        // El camino está definido por puntos que el enemigo seguirá.
         const path = [
-            {x: 0, y: 200}, {x: 200, y: 200}, {x: 200, y: 400}, 
-            {x: 400, y: 400}, {x: 400, y: 100}, {x: 600, y: 100},
-            {x: 600, y: 300}, {x: 800, y: 300}, {x: 800, y: 500}
+            { x: 10, y: 300 },
+            { x: 200, y: 300 },
+            { x: 200, y: 100 },
+            { x: 450, y: 100 },
+            { x: 450, y: 500 },
+            { x: 600, y: 500 },
+            { x: 600, y: 250 },
+            { x: 790, y: 250 }
         ];
 
-        // Inicialización del juego
+        // Lógica de inicialización
+        window.onload = function() {
+            init();
+        }
+
         function init() {
-            // Event listeners para los botones del menú
+            setupEventListeners();
+            connectToServer();
+            showMainMenu(); // Asegura que el menú principal sea visible al inicio
+        }
+
+        function setupEventListeners() {
             document.getElementById('createRoomBtn').addEventListener('click', createRoom);
-            document.getElementById('joinRoomBtn').addEventListener('click', joinRoom);
+            document.getElementById('joinRoomBtn').addEventListener('click', () => {
+                document.getElementById('joinRoomModal').style.display = 'flex';
+            });
+            document.getElementById('joinRoomConfirmBtn').addEventListener('click', joinRoom);
+            document.getElementById('closeJoinRoomBtn').addEventListener('click', () => {
+                document.getElementById('joinRoomModal').style.display = 'none';
+            });
             document.getElementById('profileBtn').addEventListener('click', showProfile);
-            document.getElementById('shopBtn').addEventListener('click', showShop);
-            document.getElementById('settingsBtn').addEventListener('click', showSettings);
+            document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
+            document.getElementById('shopBtn').addEventListener('click', () => showMessage("Tienda - En desarrollo"));
             document.getElementById('creditsBtn').addEventListener('click', showCredits);
+            document.getElementById('closeCreditsBtn').addEventListener('click', closeCredits);
             document.getElementById('startGameBtn').addEventListener('click', startGame);
             document.getElementById('leaveLobbyBtn').addEventListener('click', leaveLobby);
-            document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
-            document.getElementById('closeCreditsBtn').addEventListener('click', closeCredits);
-            document.getElementById('closeCreditsBtn2').addEventListener('click', closeCredits);
             
-            // Configurar torres seleccionables
             document.querySelectorAll('.tower-option').forEach(option => {
                 option.addEventListener('click', function() {
                     selectedTower = this.getAttribute('data-tower');
                 });
             });
             
-            // Configurar el mapa
-            setupMap();
-        }
-
-        // Configurar el mapa del juego
-        function setupMap() {
-            // Dibujar el camino
-            for (let i = 0; i < path.length - 1; i++) {
-                const start = path[i];
-                const end = path[i+1];
-                
-                const pathSegment = document.createElement('div');
-                pathSegment.className = 'path';
-                
-                if (start.x === end.x) { // Segmento vertical
-                    pathSegment.style.left = `${start.x}px`;
-                    pathSegment.style.top = `${Math.min(start.y, end.y)}px`;
-                    pathSegment.style.width = '40px';
-                    pathSegment.style.height = `${Math.abs(end.y - start.y)}px`;
-                } else { // Segmento horizontal
-                    pathSegment.style.top = `${start.y}px`;
-                    pathSegment.style.left = `${Math.min(start.x, end.x)}px`;
-                    pathSegment.style.height = '40px';
-                    pathSegment.style.width = `${Math.abs(end.x - start.x)}px`;
-                }
-                
-                gameMap.appendChild(pathSegment);
-            }
-            
-            // Crear espacios para torres (simulado)
-            for (let i = 0; i < 20; i++) {
-                const spot = document.createElement('div');
-                spot.className = 'tower-spot';
-                spot.style.left = `${100 + Math.random() * 700}px`;
-                spot.style.top = `${50 + Math.random() * 450}px`;
-                spot.addEventListener('click', placeTower);
-                gameMap.appendChild(spot);
-            }
-            
-            // Configurar clic en el mapa para torres
             gameMap.addEventListener('click', function(e) {
-                if (selectedTower && e.target === gameMap) {
-                    placeTowerAt(e.clientX, e.clientY);
+                if (gameState === 'game' && selectedTower) {
+                    const rect = gameCanvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    placeTowerAt(x, y);
+                }
+            });
+
+            document.addEventListener('click', (e) => {
+                if (e.target.closest('.tower') === null) {
+                    upgradePanel.style.display = 'none';
                 }
             });
         }
+        
+        // ---- LÓGICA DE MULTIJUGADOR (CLIENTE) CON SOCKET.IO ----
+        
+        function connectToServer() {
+            // Reemplaza 'http://localhost:3000' con la URL de tu servidor
+            // Si el juego está en GitHub Pages, necesitarás un servidor alojado
+            // en otro lugar.
+            socket = io('http://localhost:3000'); 
 
-        // Lógica para colocar torres
-        function placeTower(e) {
-            if (!selectedTower) return;
-            
-            const spot = e.target;
-            const rect = spot.getBoundingClientRect();
-            const x = rect.left + rect.width / 2;
-            const y = rect.top + rect.height / 2;
-            
-            placeTowerAt(x, y);
+            // Maneja la conexión exitosa
+            socket.on('connect', () => {
+                console.log('Conectado al servidor Socket.IO.');
+            });
+
+            // Maneja la desconexión
+            socket.on('disconnect', () => {
+                console.log('Desconectado del servidor.');
+                if (gameState !== 'menu') {
+                    showMessage("Conexión perdida. Vuelve al menú principal.");
+                    resetGame(); // Resetear el estado del juego
+                    showMainMenu(); // Mostrar el menú principal
+                }
+            });
+
+            // Recibe la lista de jugadores actualizada
+            socket.on('update-lobby', (data) => {
+                players = data.players;
+                roomCode = data.roomCode;
+                updateLobbyUI();
+            });
+
+            // El servidor nos confirma que la sala se ha creado
+            socket.on('room-created', (data) => {
+                roomCode = data.roomCode;
+                players = [{ id: socket.id, name: playerName }];
+                showLobby();
+            });
+
+            // El servidor nos confirma que nos hemos unido a una sala
+            socket.on('room-joined', (data) => {
+                roomCode = data.roomCode;
+                players = data.players;
+                showLobby();
+            });
+
+            // El servidor nos dice que el juego ha comenzado
+            socket.on('game-start', (data) => {
+                // Aquí podrías recibir el estado inicial del juego, si fuera necesario
+                showGame();
+                startGameLogic();
+            });
+
+            // El servidor nos envía actualizaciones del estado del juego
+            socket.on('game-state-update', (data) => {
+                // Sincroniza el estado del juego (enemigos, salud, etc.)
+                // Esto es crucial para el multijugador
+                // Por ahora, lo mantenemos simple.
+            });
+        }
+        
+        function createRoom() {
+            if (socket && socket.connected) {
+                showMessage("Creando sala...");
+                socket.emit('create-room', { playerName });
+            } else {
+                showMessage("No hay conexión con el servidor. Intenta de nuevo más tarde.");
+            }
+        }
+        
+        function joinRoom() {
+            const code = document.getElementById('roomCodeInput').value.trim();
+            if (code && code.length === 6 && socket && socket.connected) {
+                showMessage("Intentando unirse a la sala...");
+                socket.emit('join-room', { roomCode: code, playerName });
+            } else {
+                showMessage("Código de sala inválido o no hay conexión.");
+            }
         }
 
+        function leaveLobby() {
+            if (socket && socket.connected) {
+                socket.emit('leave-room', { roomCode });
+            }
+            roomCode = null;
+            players = [];
+            showMainMenu();
+        }
+
+        function startGame() {
+            if (socket && socket.connected) {
+                socket.emit('start-game', { roomCode });
+            }
+        }
+
+        // --- Fin de la lógica de Socket.IO ---
+
+        // Dibuja el nuevo mapa pixel art
+        function drawMap() {
+            ctx.clearRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
+
+            // Fondo de pasto con varios tonos
+            const grassColors = ["#2a4d34", "#35623e", "#3d6e4a", "#4c8a66"];
+            for (let y = 0; y < MAP_HEIGHT; y += 4) {
+                for (let x = 0; x < MAP_WIDTH; x += 4) {
+                    ctx.fillStyle = grassColors[Math.floor(Math.random() * grassColors.length)];
+                    ctx.fillRect(x, y, 4, 4);
+                }
+            }
+
+            // Dibuja el camino con bordes negros
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(path[0].x, path[0].y);
+            for (let i = 1; i < path.length; i++) {
+                ctx.lineTo(path[i].x, path[i].y);
+            }
+            ctx.lineWidth = 40;
+            ctx.strokeStyle = "#4b2c1b"; // Borde oscuro
+            ctx.stroke();
+            
+            ctx.lineWidth = 32;
+            ctx.strokeStyle = "#8b4513"; // Relleno del camino
+            ctx.stroke();
+
+            // Detalles en el mapa (árboles, rocas, etc.)
+            // Puedes agregar más detalles con más funciones como estas
+            drawPixelArtTree(100, 50, "#22613b", "#3d6e4a");
+            drawPixelArtTree(400, 450, "#22613b", "#3d6e4a");
+            drawPixelArtTree(700, 150, "#22613b", "#3d6e4a");
+            drawPixelArtRock(300, 200, "#666", "#333");
+            drawPixelArtRock(650, 400, "#666", "#333");
+            drawPixelArtBush(50, 450, "#2a4d34", "#35623e");
+            drawPixelArtBush(550, 50, "#2a4d34", "#35623e");
+        }
+
+        // Dibuja un árbol de pixel art
+        function drawPixelArtTree(x, y, darkColor, lightColor) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            // Sombra
+            ctx.fillStyle = "rgba(0,0,0,0.3)";
+            ctx.beginPath();
+            ctx.ellipse(16, 40, 12, 5, 0, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // Tronco
+            ctx.fillStyle = "#a37f5d";
+            ctx.fillRect(12, 28, 8, 16);
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(12, 28, 8, 16);
+
+            // Copa del árbol
+            const crown = [
+                [0, 16, 32, 16], [4, 8, 24, 8], [8, 0, 16, 8]
+            ];
+            for (let i = 0; i < crown.length; i++) {
+                const [cx, cy, cw, ch] = crown[i];
+                ctx.fillStyle = lightColor;
+                ctx.fillRect(cx, cy, cw, ch);
+                ctx.strokeStyle = "#000";
+                ctx.lineWidth = 1;
+                ctx.strokeRect(cx, cy, cw, ch);
+            }
+            ctx.restore();
+        }
+
+        // Dibuja una roca de pixel art
+        function drawPixelArtRock(x, y, lightColor, darkColor) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            // Sombra
+            ctx.fillStyle = "rgba(0,0,0,0.3)";
+            ctx.beginPath();
+            ctx.ellipse(16, 16, 10, 4, 0, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            ctx.fillStyle = lightColor;
+            const rockShape = [
+                { x: 16, y: 0 }, { x: 30, y: 8 }, { x: 28, y: 20 }, { x: 10, y: 30 }, { x: 2, y: 18 }, { x: 4, y: 6 }
+            ];
+            ctx.beginPath();
+            ctx.moveTo(rockShape[0].x, rockShape[0].y);
+            for (let i = 1; i < rockShape.length; i++) {
+                ctx.lineTo(rockShape[i].x, rockShape[i].y);
+            }
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle = darkColor;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        // Dibuja un arbusto de pixel art
+        function drawPixelArtBush(x, y, darkColor, lightColor) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            // Sombra
+            ctx.fillStyle = "rgba(0,0,0,0.3)";
+            ctx.beginPath();
+            ctx.ellipse(12, 24, 10, 4, 0, 0, 2 * Math.PI);
+            ctx.fill();
+
+            ctx.fillStyle = darkColor;
+            ctx.fillRect(0, 10, 24, 14);
+            ctx.fillStyle = lightColor;
+            ctx.fillRect(4, 6, 16, 16);
+            ctx.fillRect(8, 0, 8, 8);
+
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(0, 10, 24, 14);
+            ctx.strokeRect(4, 6, 16, 16);
+            ctx.strokeRect(8, 0, 8, 8);
+            
+            ctx.restore();
+        }
+
+        // Dibuja el sprite del enemigo (32x32)
+        function drawEnemySprite(ctx, x, y, type) {
+            ctx.save();
+            ctx.translate(x, y);
+            
+            ctx.imageSmoothingEnabled = false; // Desactiva el suavizado para el arte pixelado
+
+            if (type === 'slime') {
+                ctx.fillStyle = '#00ff00';
+                ctx.fillRect(-16, -16, 32, 32);
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(-16, -16, 32, 32);
+                ctx.fillStyle = '#000';
+                ctx.fillRect(-8, -8, 4, 4);
+                ctx.fillRect(4, -8, 4, 4);
+                ctx.fillRect(-4, 4, 8, 4);
+            } else if (type === 'robot') {
+                ctx.fillStyle = '#808080';
+                ctx.fillRect(-12, -16, 24, 32);
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(-8, -12, 16, 8);
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(-12, -16, 24, 32);
+                ctx.strokeRect(-8, -12, 16, 8);
+            }
+            ctx.restore();
+        }
+
+        // Lógica de juego
+        function startGameLogic() {
+            isGameActive = true;
+            enemies = [];
+            towers = [];
+            projectiles = [];
+            coins = 500;
+            health = 100;
+            currentWave = 0;
+            updateUI();
+
+            drawMap(); // Dibuja el mapa antes de iniciar
+            
+            setTimeout(() => startWave(), 3000);
+            gameLoop();
+        }
+
+        function gameLoop() {
+            if (!isGameActive) return;
+
+            // Lógica de juego
+            moveEnemies();
+            towerLogic();
+            moveProjectiles();
+            
+            // Dibuja los elementos en el canvas
+            drawMap();
+            enemies.forEach(e => drawEnemySprite(ctx, e.x, e.y, e.type));
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Lógica para colocar torres
         function placeTowerAt(x, y) {
             const cost = getTowerCost(selectedTower);
-            if (coins < cost) return;
+            if (coins < cost) {
+                showMessage("Monedas insuficientes.");
+                return;
+            }
             
-            coins -= cost;
-            updateCoinDisplay();
+            // Verifica si está en el camino, usando una tolerancia de 25px
+            if (isPointOnPath(x, y, 25)) {
+                showMessage("No puedes construir en el camino.");
+                return;
+            }
             
-            const tower = document.createElement('div');
-            tower.className = `tower ${selectedTower}`;
+            // Decide qué sprite usar según la posición Y
+            const spriteKey = (y > MAP_HEIGHT / 2) ? `${selectedTower}_up` : `${selectedTower}_down`;
+            
+            const tower = document.createElement('img');
+            tower.className = 'tower';
+            tower.src = towerSprites[spriteKey];
             tower.style.left = `${x}px`;
             tower.style.top = `${y}px`;
             tower.setAttribute('data-type', selectedTower);
@@ -733,7 +956,9 @@
             
             gameMap.appendChild(tower);
             
-            // Añadir a la lógica del juego
+            coins -= cost;
+            updateUI();
+            
             towers.push({
                 element: tower,
                 type: selectedTower,
@@ -749,6 +974,28 @@
             selectedTower = null;
         }
 
+        // Función para verificar si un punto está cerca del camino (ajustada para el nuevo mapa)
+        function isPointOnPath(x, y, tolerance) {
+            // Esta función es una aproximación y funciona para un camino simple.
+            // Para caminos más complejos, se necesitaría una lógica de detección de colisiones más avanzada.
+            for (let i = 0; i < path.length - 1; i++) {
+                const start = path[i];
+                const end = path[i + 1];
+                const dx = end.x - start.x;
+                const dy = end.y - start.y;
+                const len = Math.sqrt(dx * dx + dy * dy);
+                if (len === 0) continue;
+
+                const t = Math.max(0, Math.min(1, ((x - start.x) * dx + (y - start.y) * dy) / (len * len)));
+                const closestX = start.x + t * dx;
+                const closestY = start.y + t * dy;
+                const dist = Math.sqrt(Math.pow(x - closestX, 2) + Math.pow(y - closestY, 2));
+
+                if (dist <= tolerance) return true;
+            }
+            return false;
+        }
+
         function getTowerCost(type) {
             switch(type) {
                 case 'miku': return 100;
@@ -757,20 +1004,17 @@
                 default: return 0;
             }
         }
-
-        // Mostrar panel de mejoras
+        
         function showUpgrades(e) {
             e.stopPropagation();
-            const rect = upgradePanel.getBoundingClientRect();
+            const rect = gameContainer.getBoundingClientRect();
             upgradePanel.style.display = 'block';
-            upgradePanel.style.left = `${e.clientX - rect.width / 2}px`;
-            upgradePanel.style.top = `${e.clientY - rect.height - 10}px`;
+            upgradePanel.style.left = `${e.clientX - rect.left}px`;
+            upgradePanel.style.top = `${e.clientY - rect.top - upgradePanel.clientHeight - 10}px`;
             
-            // Encontrar la torre en el array
             const towerElement = e.target;
             const towerIndex = towers.findIndex(t => t.element === towerElement);
             
-            // Configurar eventos de mejora
             document.querySelectorAll('.upgrade-option').forEach(option => {
                 option.onclick = function() {
                     upgradeTower(towerIndex, this.getAttribute('data-upgrade'));
@@ -778,36 +1022,24 @@
                 };
             });
         }
-
-        // Mejorar torre
+        
         function upgradeTower(index, upgradeType) {
             const tower = towers[index];
             const cost = upgradeType === 'special' ? 300 : 100;
             
-            if (coins < cost) return;
+            if (coins < cost) {
+                showMessage("Monedas insuficientes para mejorar.");
+                return;
+            }
             
             coins -= cost;
-            updateCoinDisplay();
+            updateUI();
             
             switch(upgradeType) {
-                case 'damage':
-                    tower.damage *= 1.1;
-                    break;
-                case 'speed':
-                    tower.cooldown *= 0.9;
-                    break;
-                case 'range':
-                    tower.range *= 1.1;
-                    break;
-                case 'special':
-                    if (tower.type === 'teto') {
-                        // Ataque múltiple para Teto
-                        tower.special = 'multi';
-                    } else if (tower.type === 'neru') {
-                        // Rayos amarillos para Neru
-                        tower.special = 'ray';
-                    }
-                    break;
+                case 'damage': tower.damage *= 1.1; break;
+                case 'speed': tower.cooldown *= 0.9; break;
+                case 'range': tower.range *= 1.1; break;
+                case 'special': tower.special = 'active'; break;
             }
             
             tower.level++;
@@ -815,7 +1047,15 @@
 
         // Lógica de oleadas de enemigos
         function startWave() {
+            if (!isGameActive) return;
+
+            if (currentWave >= MAX_WAVES) {
+                showMessage("¡Has ganado el juego!");
+                isGameActive = false;
+                return;
+            }
             currentWave++;
+            waveCount.textContent = `${currentWave}/${MAX_WAVES}`;
             const enemyCount = 5 + currentWave * 2;
             
             for (let i = 0; i < enemyCount; i++) {
@@ -823,19 +1063,22 @@
                     spawnEnemy();
                 }, i * 1000);
             }
+            
+            setTimeout(() => {
+                startWave();
+            }, (enemyCount * 1000) + 5000); 
         }
 
         function spawnEnemy() {
+            if (!isGameActive) return;
+
             const enemy = document.createElement('div');
             enemy.className = 'enemy';
-            enemy.style.backgroundColor = getRandomEnemyColor();
-            enemy.style.left = '0px';
-            enemy.style.top = `${path[0].y}px`;
-            gameMap.appendChild(enemy);
             
             const enemyObj = {
                 element: enemy,
-                x: 0,
+                type: Math.random() > 0.5 ? 'slime' : 'robot',
+                x: path[0].x,
                 y: path[0].y,
                 health: 50 + currentWave * 10,
                 speed: 1 + currentWave * 0.1,
@@ -844,104 +1087,82 @@
             };
             
             enemies.push(enemyObj);
-            
-            // Iniciar movimiento
-            moveEnemy(enemyObj);
         }
 
-        function getRandomEnemyColor() {
-            const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff'];
-            return colors[Math.floor(Math.random() * colors.length)];
-        }
-
-        function moveEnemy(enemy) {
-            const nextPoint = path[enemy.pathIndex + 1];
-            if (!nextPoint) {
-                // El enemigo llegó al final
-                takeDamage(10);
-                removeEnemy(enemy);
-                return;
-            }
-            
-            const dx = nextPoint.x - enemy.x;
-            const dy = nextPoint.y - enemy.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            if (distance < enemy.speed) {
-                // Llegó al siguiente punto del camino
-                enemy.pathIndex++;
-                moveEnemy(enemy);
-            } else {
-                // Mover hacia el siguiente punto
-                enemy.x += (dx / distance) * enemy.speed;
-                enemy.y += (dy / distance) * enemy.speed;
+        function moveEnemies() {
+            enemies.forEach(enemy => {
+                const nextPoint = path[enemy.pathIndex + 1];
+                if (!nextPoint) {
+                    takeDamage(10);
+                    removeEnemy(enemy);
+                    return;
+                }
                 
-                enemy.element.style.left = `${enemy.x}px`;
-                enemy.element.style.top = `${enemy.y}px`;
+                const dx = nextPoint.x - enemy.x;
+                const dy = nextPoint.y - enemy.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                requestAnimationFrame(() => moveEnemy(enemy));
-            }
+                if (distance < enemy.speed) {
+                    enemy.pathIndex++;
+                } else {
+                    enemy.x += (dx / distance) * enemy.speed;
+                    enemy.y += (dy / distance) * enemy.speed;
+                }
+            });
         }
-
+        
         function takeDamage(amount) {
             health -= amount;
-            healthCount.textContent = health;
-            
             if (health <= 0) {
                 gameOver();
             }
+            updateUI();
         }
 
         function removeEnemy(enemy) {
             const index = enemies.indexOf(enemy);
             if (index !== -1) {
                 enemies.splice(index, 1);
-                gameMap.removeChild(enemy.element);
-                
-                // Recompensa por derrotar enemigo
                 coins += enemy.reward;
-                updateCoinDisplay();
+                updateUI();
             }
         }
 
-        function updateCoinDisplay() {
-            coinCount.textContent = coins;
-        }
-
         // Lógica de disparo de torres
-        function towerLogic(timestamp) {
+        function towerLogic() {
             towers.forEach(tower => {
-                if (timestamp - tower.lastShot > tower.cooldown) {
-                    // Buscar enemigo en rango
+                const now = performance.now();
+                if (now - tower.lastShot > tower.cooldown) {
                     const target = findTarget(tower);
                     if (target) {
                         shoot(tower, target);
-                        tower.lastShot = timestamp;
+                        tower.lastShot = now;
                     }
                 }
             });
-            
-            requestAnimationFrame(towerLogic);
         }
 
         function findTarget(tower) {
+            let closestEnemy = null;
+            let minDistance = tower.range;
+            
             for (const enemy of enemies) {
                 const dx = enemy.x - tower.x;
                 const dy = enemy.y - tower.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                if (distance <= tower.range) {
-                    return enemy;
+                if (distance <= minDistance) {
+                    minDistance = distance;
+                    closestEnemy = enemy;
                 }
             }
-            return null;
+            return closestEnemy;
         }
 
         function shoot(tower, target) {
             const projectile = document.createElement('div');
             projectile.className = 'projectile';
             
-            // Color del proyectil según el tipo de torre
             if (tower.type === 'miku') projectile.style.backgroundColor = '#39c5bb';
             else if (tower.type === 'teto') projectile.style.backgroundColor = '#ff9ec6';
             else if (tower.type === 'neru') projectile.style.backgroundColor = '#ffcc22';
@@ -950,8 +1171,7 @@
             projectile.style.top = `${tower.y}px`;
             gameMap.appendChild(projectile);
             
-            // Animación del proyectil
-            const projectileObj = {
+            projectiles.push({
                 element: projectile,
                 x: tower.x,
                 y: tower.y,
@@ -959,20 +1179,16 @@
                 damage: tower.damage,
                 speed: 5,
                 special: tower.special
-            };
-            
-            projectiles.push(projectileObj);
-            
-            // Efecto de sonido (simulado)
-            playSound('shoot');
+            });
         }
 
         function moveProjectiles() {
             projectiles.forEach((proj, index) => {
                 const target = proj.target;
-                if (!target || !target.element.parentNode) {
-                    // El objetivo ya no existe
-                    gameMap.removeChild(proj.element);
+                if (!target || !enemies.includes(target)) {
+                    if (gameMap.contains(proj.element)) {
+                        gameMap.removeChild(proj.element);
+                    }
                     projectiles.splice(index, 1);
                     return;
                 }
@@ -982,46 +1198,17 @@
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
                 if (distance < proj.speed) {
-                    // Impacto
                     target.health -= proj.damage;
-                    
-                    // Efectos especiales
-                    if (proj.special === 'multi' && Math.random() < 0.3) {
-                        // Ataque múltiple (Teto)
-                        const nearby = enemies.filter(e => e !== target && 
-                            Math.abs(e.x - target.x) < 50 && 
-                            Math.abs(e.y - target.y) < 50);
-                        
-                        nearby.slice(0, 2).forEach(e => {
-                            e.health -= proj.damage * 0.7;
-                        });
-                    } else if (proj.special === 'ray') {
-                        // Rayo (Neru)
-                        const ray = document.createElement('div');
-                        ray.style.position = 'absolute';
-                        ray.style.left = `${proj.x}px`;
-                        ray.style.top = `${proj.y}px`;
-                        ray.style.width = `${distance}px`;
-                        ray.style.height = '3px';
-                        ray.style.backgroundColor = '#ffff00';
-                        ray.style.border = '1px solid #000';
-                        ray.style.transformOrigin = '0 0';
-                        ray.style.transform = `rotate(${Math.atan2(dy, dx)}rad)`;
-                        gameMap.appendChild(ray);
-                        
-                        setTimeout(() => {
-                            gameMap.removeChild(ray);
-                        }, 100);
-                    }
                     
                     if (target.health <= 0) {
                         removeEnemy(target);
                     }
                     
-                    gameMap.removeChild(proj.element);
+                    if (gameMap.contains(proj.element)) {
+                        gameMap.removeChild(proj.element);
+                    }
                     projectiles.splice(index, 1);
                 } else {
-                    // Mover proyectil
                     proj.x += (dx / distance) * proj.speed;
                     proj.y += (dy / distance) * proj.speed;
                     
@@ -1029,25 +1216,18 @@
                     proj.element.style.top = `${proj.y}px`;
                 }
             });
-            
-            requestAnimationFrame(moveProjectiles);
-        }
-
-        function playSound(type) {
-            // Implementar lógica de sonido
-            console.log(`Playing ${type} sound`);
         }
 
         function gameOver() {
-            alert(`Game Over! Llegaste a la oleada ${currentWave}`);
-            resetGame();
+            isGameActive = false;
+            showMessage(`¡Game Over! Llegaste a la oleada ${currentWave}`);
+            setTimeout(resetGame, 3000);
         }
 
         function resetGame() {
-            // Limpiar el juego
-            enemies.forEach(e => gameMap.removeChild(e.element));
-            towers.forEach(t => gameMap.removeChild(t.element));
-            projectiles.forEach(p => gameMap.removeChild(p.element));
+            enemies.forEach(e => { if (e.element && gameMap.contains(e.element)) gameMap.removeChild(e.element) });
+            towers.forEach(t => { if (t.element && gameMap.contains(t.element)) gameMap.removeChild(t.element) });
+            projectiles.forEach(p => { if (p.element && gameMap.contains(p.element)) gameMap.removeChild(p.element) });
             
             enemies = [];
             towers = [];
@@ -1057,64 +1237,72 @@
             health = 100;
             currentWave = 0;
             
-            updateCoinDisplay();
-            healthCount.textContent = health;
-            
-            // Volver al menú
+            updateUI();
             showMainMenu();
         }
 
-        // Funciones de red/multijugador (simuladas)
-        function createRoom() {
-            roomCode = generateRoomCode();
-            roomCodeDisplay.textContent = `Código: ${roomCode}`;
-            players = [{name: playerName, id: 'local'}];
-            updatePlayerList();
-            showLobby();
+        // Actualiza toda la interfaz de usuario
+        function updateUI() {
+            healthCount.textContent = health;
+            coinCount.textContent = coins;
+            waveCount.textContent = `${currentWave}/${MAX_WAVES}`;
+            updateLobbyUI();
         }
 
-        function joinRoom() {
-            const code = prompt("Ingresa el código de la sala:");
-            if (code && code.length === 6) {
-                roomCode = code;
-                roomCodeDisplay.textContent = `Código: ${roomCode}`;
-                players = [
-                    {name: "Anfitrión", id: 'host'},
-                    {name: playerName, id: 'local'}
-                ];
-                updatePlayerList();
-                showLobby();
-            }
-        }
+        function updateLobbyUI() {
+            roomCodeDisplay.textContent = `Código: ${roomCode || '---'}`;
+            playerCountDisplay.textContent = `Jugadores: ${players.length}/3`;
 
-        function generateRoomCode() {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            let result = '';
-            for (let i = 0; i < 6; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return result;
-        }
-
-        function updatePlayerList() {
-            player1Name.textContent = players[0]?.name || "Esperando...";
-            player2Name.textContent = players[1]?.name || "Esperando...";
-            player3Name.textContent = players[2]?.name || "Esperando...";
-        }
-
-        function startGame() {
-            // Simular jugadores adicionales (para prueba)
-            if (players.length < 3 && Math.random() > 0.5) {
-                players.push({name: "Jugador " + (players.length + 1), id: 'bot'});
-                updatePlayerList();
-            }
+            // Limpia la lista de jugadores
+            playerList.innerHTML = '';
             
-            showGame();
-            
-            // Iniciar lógica del juego
-            setTimeout(() => startWave(), 3000);
-            requestAnimationFrame(towerLogic);
-            requestAnimationFrame(moveProjectiles);
+            // Renderiza los jugadores en el lobby
+            for (let i = 0; i < 3; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'player-slot';
+                const avatar = document.createElement('div');
+                avatar.className = 'player-avatar';
+                const nameInput = document.createElement('input');
+                nameInput.className = 'player-name-input';
+                nameInput.type = 'text';
+                nameInput.maxLength = 12;
+
+                if (players[i]) {
+                    nameInput.value = players[i].name;
+                    nameInput.disabled = (players[i].id !== socket.id);
+                } else {
+                    nameInput.value = "Esperando...";
+                    nameInput.disabled = true;
+                }
+                
+                slot.appendChild(avatar);
+                slot.appendChild(nameInput);
+                playerList.appendChild(slot);
+            }
+        }
+        
+        function showMessage(text) {
+            const msgBox = document.createElement('div');
+            msgBox.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(0, 0, 0, 0.8);
+                color: white;
+                padding: 1rem 2rem;
+                border: 2px solid var(--accent-color);
+                z-index: 1000;
+                font-family: 'Press Start 2P', cursive;
+                text-align: center;
+                animation: fade-in 0.5s forwards;
+            `;
+            msgBox.textContent = text;
+            document.body.appendChild(msgBox);
+            setTimeout(() => {
+                msgBox.style.animation = 'fade-out 0.5s forwards';
+                setTimeout(() => document.body.removeChild(msgBox), 500);
+            }, 2000);
         }
 
         // Funciones de navegación
@@ -1122,6 +1310,9 @@
             mainMenu.style.display = 'flex';
             lobbyContainer.style.display = 'none';
             gameContainer.style.display = 'none';
+            document.getElementById('profileModal').style.display = 'none';
+            document.getElementById('creditsModal').style.display = 'none';
+            document.getElementById('joinRoomModal').style.display = 'none';
             gameState = 'menu';
         }
 
@@ -1129,107 +1320,39 @@
             mainMenu.style.display = 'none';
             lobbyContainer.style.display = 'flex';
             gameContainer.style.display = 'none';
+            document.getElementById('profileModal').style.display = 'none';
+            document.getElementById('creditsModal').style.display = 'none';
+            document.getElementById('joinRoomModal').style.display = 'none';
             gameState = 'lobby';
         }
 
         function showGame() {
             mainMenu.style.display = 'none';
             lobbyContainer.style.display = 'none';
-            gameContainer.style.display = 'block';
+            gameContainer.style.display = 'flex';
+            document.getElementById('profileModal').style.display = 'none';
+            document.getElementById('creditsModal').style.display = 'none';
+            document.getElementById('joinRoomModal').style.display = 'none';
             gameState = 'game';
         }
 
-        function leaveLobby() {
-            roomCode = "";
-            players = [];
-            showMainMenu();
-        }
-
         function showProfile() {
-            document.getElementById('profileModal').style.display = 'block';
             document.getElementById('playerNameInput').value = playerName;
+            document.getElementById('profileModal').style.display = 'flex';
         }
-
+        
         function saveProfile() {
             playerName = document.getElementById('playerNameInput').value.trim() || "Jugador";
-            if (gameState === 'lobby') {
-                // Actualizar nombre en el lobby
-                const localPlayer = players.find(p => p.id === 'local');
-                if (localPlayer) localPlayer.name = playerName;
-                updatePlayerList();
-            }
             document.getElementById('profileModal').style.display = 'none';
         }
-
-        function showShop() {
-            alert("Tienda - En desarrollo");
-        }
-
-        function showSettings() {
-            alert("Configuración - En desarrollo");
-        }
-
+        
         function showCredits() {
-            document.getElementById('creditsContainer').style.display = 'flex';
-            const scrollArea = document.getElementById('creditsScrollArea');
-            scrollArea.scrollTop = 0;
-            creditsPaused = false;
-            // Animación automática de scroll hacia arriba
-            if (creditsInterval) clearInterval(creditsInterval);
-            creditsInterval = setInterval(() => {
-                if (!creditsPaused) {
-                    scrollArea.scrollTop += 1.2;
-                    // Si llegó al final, pausa
-                    if (scrollArea.scrollTop + scrollArea.clientHeight >= scrollArea.scrollHeight - 2) {
-                        creditsPaused = true;
-                    }
-                }
-            }, 16); // ~60fps
+            document.getElementById('creditsModal').style.display = 'flex';
         }
 
         function closeCredits() {
-            document.getElementById('creditsContainer').style.display = 'none';
-            if (creditsInterval) clearInterval(creditsInterval);
+            document.getElementById('creditsModal').style.display = 'none';
         }
-
-        // Permitir scroll manual con mouse y pausar animación mientras se interactúa
-        window.addEventListener('DOMContentLoaded', () => {
-            const scrollArea = document.getElementById('creditsScrollArea');
-            let isUserScrolling = false;
-            let lastY = 0;
-
-            scrollArea.addEventListener('mousedown', function(e) {
-                isUserScrolling = true;
-                creditsPaused = true;
-                lastY = e.clientY;
-            });
-            scrollArea.addEventListener('mousemove', function(e) {
-                if (isUserScrolling) {
-                    scrollArea.scrollTop -= (e.clientY - lastY);
-                    lastY = e.clientY;
-                }
-            });
-            scrollArea.addEventListener('mouseup', function() {
-                isUserScrolling = false;
-                creditsPaused = false;
-            });
-            scrollArea.addEventListener('mouseleave', function() {
-                isUserScrolling = false;
-                creditsPaused = false;
-            });
-            // También pausar animación si el usuario usa la rueda del mouse
-            scrollArea.addEventListener('wheel', function() {
-                creditsPaused = true;
-                setTimeout(() => { creditsPaused = false; }, 1200);
-            });
-        });
-
-        // Créditos animados y scroll manual
-        let creditsInterval = null;
-        let creditsPaused = false;
-
-        // Iniciar el juego cuando se cargue la página
-        window.onload = init;
     </script>
 </body>
 </html>
