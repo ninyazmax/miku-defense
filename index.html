@@ -164,6 +164,13 @@
             outline: none;
             transition: color 0.3s;
         }
+        .player-name::before {
+            content: attr(data-name);
+            position: absolute;
+            color: transparent;
+            pointer-events: none;
+            z-index: -1;
+        }
         .player-name:focus {
             color: var(--accent-color);
         }
@@ -391,38 +398,37 @@
             transform: translate(-2px, -2px);
             box-shadow: 5px 5px 0px rgba(0, 0, 0, 0.5);
         }
-        /* Selección de torre */
+        /* Rango de torres */
+        .tower-range {
+            position: absolute;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 5;
+        }
+        /* Preview de torre */
         .tower-preview {
             position: fixed;
             width: 32px;
             height: 32px;
             transform: translate(-50%, -50%);
-            z-index: 100;
             pointer-events: none;
+            z-index: 100;
             opacity: 0.7;
         }
-        .tower-preview.miku { background-color: #39c5bb; }
-        .tower-preview.teto { background-color: #ff9ec6; }
-        .tower-preview.neru { background-color: #ffcc22; }
-        /* Rango de torre */
-        .tower-range {
-            position: absolute;
-            border: 1px dashed rgba(255, 255, 255, 0.5);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            z-index: 5;
-        }
         /* Validación de colocación */
-        .placement-valid {
-            border: 2px solid rgba(0, 255, 0, 0.7);
-        }
         .placement-invalid {
-            border: 2px solid rgba(255, 0, 0, 0.7);
+            border: 2px solid rgba(255, 0, 0, 0.5);
+            background-color: rgba(255, 0, 0, 0.2);
+        }
+        .placement-valid {
+            border: 2px solid rgba(0, 255, 0, 0.5);
+            background-color: rgba(0, 255, 0, 0.2);
         }
         /* Botón de siguiente ronda (solo para host) */
         .next-wave-button {
-            background-color: var(--primary-color);
+            display: none;
+            background-color: var(--accent-color);
             color: white;
             padding: 0.8rem 1.5rem;
             border: 2px solid black;
@@ -432,12 +438,87 @@
             transition: all 0.3s;
             box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.5);
             margin-top: 1rem;
-            display: none;
         }
         .next-wave-button:hover {
-            background-color: var(--button-hover);
+            background-color: #ff44b4;
             transform: translate(-2px, -2px);
             box-shadow: 5px 5px 0px rgba(0, 0, 0, 0.5);
+        }
+        /* Modales */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 101;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: var(--background-dark);
+            padding: 2rem;
+            border: 3px solid var(--accent-color);
+            border-radius: 10px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .modal-content h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .modal-content input {
+            width: 100%;
+            padding: 0.8rem;
+            margin-bottom: 1rem;
+            background-color: #333;
+            border: 2px solid #555;
+            color: white;
+            font-family: inherit;
+            border-radius: 5px;
+        }
+        .modal-content input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+        .modal-content button {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            border-radius: 5px;
+        }
+        .modal-content button:hover {
+            background-color: var(--button-hover);
+        }
+        /* Mensajes */
+        .message-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 1rem 2rem;
+            border: 2px solid var(--accent-color);
+            z-index: 1000;
+            font-family: 'Press Start 2P', cursive;
+            text-align: center;
+            border-radius: 5px;
+            animation: fade-in 0.5s forwards;
+        }
+        @keyframes fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes fade-out {
+            from { opacity: 1; }
+            to { opacity: 0; }
         }
     </style>
 </head>
@@ -546,9 +627,11 @@
     <div class="modal" id="creditsModal">
         <div class="modal-content">
             <h2>Créditos</h2>
-            <p><strong>Desarrollado por:</strong> [Tu Nombre]</p>
-            <p><strong>Arte y Diseño:</strong> [Colaborador 1]</p>
-            <p><strong>Música:</strong> [Colaborador 2]</p>
+            <p><strong>Desarrollado por:</strong> Equipo Miku Defense</p>
+            <p><strong>Arte y Diseño:</strong> PixelArt Studio</p>
+            <p><strong>Música:</strong> Synthwave Collective</p>
+            <p><strong>Concepto Original:</strong> Inspirado en los juegos clásicos de defensa</p>
+            <p><strong>Pruebas:</strong> Comunidad de jugadores</p>
             <button id="closeCreditsBtn">Cerrar</button>
         </div>
     </div>
@@ -556,8 +639,6 @@
         // Variables del juego
         let gameState = 'menu'; // menu, lobby, game
         let selectedTower = null;
-        let towerPreview = null;
-        let towerRange = null;
         let coins = 500;
         let health = 100;
         let currentWave = 0;
@@ -570,8 +651,9 @@
         let gameRunning = false;
         let gameOverState = false;
         let isHost = false;
-        let waveInProgress = false;
-        const MAX_WAVES = 20;
+        let towerPreview = null;
+        let rangeIndicator = null;
+        let placingTower = false;
         
         // Elementos del DOM
         const mainMenu = document.getElementById('mainMenu');
@@ -598,6 +680,7 @@
         const PIXEL_SIZE = 8; // Tamaño de cada "píxel" del mapa
         const MAP_WIDTH = 800;
         const MAP_HEIGHT = 600;
+        const MAX_WAVES = 20;
         gameCanvas.width = MAP_WIDTH;
         gameCanvas.height = MAP_HEIGHT;
         gameMap.style.width = `${MAP_WIDTH}px`;
@@ -814,6 +897,160 @@
             }
         };
 
+        // Torre sprites (arriba y abajo)
+        const towerSprites = {
+            miku: {
+                top: {
+                    draw: function(ctx, x, y) {
+                        // Miku viendo hacia abajo (desde arriba)
+                        ctx.fillStyle = '#39c5bb';
+                        ctx.fillRect(x + 8, y + 8, 16, 24);
+                        // Cabeza
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(x + 10, y + 6, 12, 8);
+                        // Pelo
+                        ctx.fillStyle = '#39c5bb';
+                        ctx.fillRect(x + 8, y + 4, 16, 6);
+                        ctx.fillRect(x + 6, y + 6, 4, 4);
+                        ctx.fillRect(x + 22, y + 6, 4, 4);
+                        // Ojos
+                        ctx.fillStyle = 'black';
+                        ctx.fillRect(x + 14, y + 9, 2, 2);
+                        ctx.fillRect(x + 18, y + 9, 2, 2);
+                        // Bordes
+                        ctx.strokeStyle = 'black';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(x + 8, y + 8, 16, 24);
+                        ctx.strokeRect(x + 10, y + 6, 12, 8);
+                        ctx.strokeRect(x + 8, y + 4, 16, 6);
+                    }
+                },
+                bottom: {
+                    draw: function(ctx, x, y) {
+                        // Miku de espaldas (vista desde abajo)
+                        ctx.fillStyle = '#39c5bb';
+                        ctx.fillRect(x + 8, y + 8, 16, 24);
+                        // Cabeza
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(x + 10, y + 6, 12, 8);
+                        // Pelo largo
+                        ctx.fillStyle = '#39c5bb';
+                        ctx.fillRect(x + 10, y + 14, 12, 16);
+                        // Ojos
+                        ctx.fillStyle = 'black';
+                        ctx.fillRect(x + 14, y + 9, 2, 2);
+                        ctx.fillRect(x + 18, y + 9, 2, 2);
+                        // Bordes
+                        ctx.strokeStyle = 'black';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(x + 8, y + 8, 16, 24);
+                        ctx.strokeRect(x + 10, y + 6, 12, 8);
+                        ctx.strokeRect(x + 10, y + 14, 12, 16);
+                    }
+                }
+            },
+            teto: {
+                top: {
+                    draw: function(ctx, x, y) {
+                        // Teto viendo hacia abajo
+                        ctx.fillStyle = '#ff9ec6';
+                        ctx.fillRect(x + 8, y + 8, 16, 24);
+                        // Cabeza
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(x + 10, y + 6, 12, 8);
+                        // Pelo rosa
+                        ctx.fillStyle = '#ff9ec6';
+                        ctx.fillRect(x + 8, y + 4, 16, 6);
+                        ctx.fillRect(x + 6, y + 6, 4, 4);
+                        ctx.fillRect(x + 22, y + 6, 4, 4);
+                        // Ojos
+                        ctx.fillStyle = 'black';
+                        ctx.fillRect(x + 14, y + 9, 2, 2);
+                        ctx.fillRect(x + 18, y + 9, 2, 2);
+                        // Bordes
+                        ctx.strokeStyle = 'black';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(x + 8, y + 8, 16, 24);
+                        ctx.strokeRect(x + 10, y + 6, 12, 8);
+                        ctx.strokeRect(x + 8, y + 4, 16, 6);
+                    }
+                },
+                bottom: {
+                    draw: function(ctx, x, y) {
+                        // Teto de espaldas
+                        ctx.fillStyle = '#ff9ec6';
+                        ctx.fillRect(x + 8, y + 8, 16, 24);
+                        // Cabeza
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(x + 10, y + 6, 12, 8);
+                        // Pelo largo rosa
+                        ctx.fillStyle = '#ff9ec6';
+                        ctx.fillRect(x + 10, y + 14, 12, 16);
+                        // Ojos
+                        ctx.fillStyle = 'black';
+                        ctx.fillRect(x + 14, y + 9, 2, 2);
+                        ctx.fillRect(x + 18, y + 9, 2, 2);
+                        // Bordes
+                        ctx.strokeStyle = 'black';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(x + 8, y + 8, 16, 24);
+                        ctx.strokeRect(x + 10, y + 6, 12, 8);
+                        ctx.strokeRect(x + 10, y + 14, 12, 16);
+                    }
+                }
+            },
+            neru: {
+                top: {
+                    draw: function(ctx, x, y) {
+                        // Neru viendo hacia abajo
+                        ctx.fillStyle = '#ffcc22';
+                        ctx.fillRect(x + 8, y + 8, 16, 24);
+                        // Cabeza
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(x + 10, y + 6, 12, 8);
+                        // Pelo amarillo
+                        ctx.fillStyle = '#ffcc22';
+                        ctx.fillRect(x + 8, y + 4, 16, 6);
+                        ctx.fillRect(x + 6, y + 6, 4, 4);
+                        ctx.fillRect(x + 22, y + 6, 4, 4);
+                        // Ojos
+                        ctx.fillStyle = 'black';
+                        ctx.fillRect(x + 14, y + 9, 2, 2);
+                        ctx.fillRect(x + 18, y + 9, 2, 2);
+                        // Bordes
+                        ctx.strokeStyle = 'black';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(x + 8, y + 8, 16, 24);
+                        ctx.strokeRect(x + 10, y + 6, 12, 8);
+                        ctx.strokeRect(x + 8, y + 4, 16, 6);
+                    }
+                },
+                bottom: {
+                    draw: function(ctx, x, y) {
+                        // Neru de espaldas
+                        ctx.fillStyle = '#ffcc22';
+                        ctx.fillRect(x + 8, y + 8, 16, 24);
+                        // Cabeza
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(x + 10, y + 6, 12, 8);
+                        // Pelo largo amarillo
+                        ctx.fillStyle = '#ffcc22';
+                        ctx.fillRect(x + 10, y + 14, 12, 16);
+                        // Ojos
+                        ctx.fillStyle = 'black';
+                        ctx.fillRect(x + 14, y + 9, 2, 2);
+                        ctx.fillRect(x + 18, y + 9, 2, 2);
+                        // Bordes
+                        ctx.strokeStyle = 'black';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(x + 8, y + 8, 16, 24);
+                        ctx.strokeRect(x + 10, y + 6, 12, 8);
+                        ctx.strokeRect(x + 10, y + 14, 12, 16);
+                    }
+                }
+            }
+        };
+
         // Inicialización del juego
         window.onload = function() {
             init();
@@ -831,109 +1068,43 @@
             document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
             document.getElementById('closeCreditsBtn').addEventListener('click', closeCredits);
             document.getElementById('restartGameBtn').addEventListener('click', restartGame);
-            document.getElementById('nextWaveBtn').addEventListener('click', startWave);
+            document.getElementById('nextWaveBtn').addEventListener('click', startNextWave);
             
             // Configurar torres seleccionables
             document.querySelectorAll('.tower-option').forEach(option => {
                 option.addEventListener('click', function() {
-                    selectTower(this.getAttribute('data-tower'));
+                    if (gameRunning && !gameOverState) {
+                        selectedTower = this.getAttribute('data-tower');
+                        startPlacingTower();
+                    }
                 });
             });
             
             // Configurar clic en el mapa para torres
-            gameMap.addEventListener('mousemove', handleMouseMove);
-            gameMap.addEventListener('click', handleMapClick);
-            
-            // Configurar eventos del mouse
-            document.addEventListener('mousemove', updateTowerPreview);
-            document.addEventListener('click', handleGlobalClick);
-        }
-        
-        function selectTower(towerType) {
-            selectedTower = towerType;
-            createTowerPreview();
-            createTowerRange();
-        }
-        
-        function createTowerPreview() {
-            if (towerPreview) {
-                gameMap.removeChild(towerPreview);
-            }
-            
-            towerPreview = document.createElement('div');
-            towerPreview.className = `tower-preview ${selectedTower}`;
-            towerPreview.style.width = '32px';
-            towerPreview.style.height = '32px';
-            gameMap.appendChild(towerPreview);
-        }
-        
-        function createTowerRange() {
-            if (towerRange) {
-                gameMap.removeChild(towerRange);
-            }
-            
-            towerRange = document.createElement('div');
-            towerRange.className = 'tower-range';
-            const range = 100; // Rango base de la torre
-            towerRange.style.width = `${range * 2}px`;
-            towerRange.style.height = `${range * 2}px`;
-            gameMap.appendChild(towerRange);
-        }
-        
-        function updateTowerPreview(e) {
-            if (!towerPreview || !towerRange) return;
-            
-            const rect = gameMap.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            
-            towerPreview.style.left = `${x}px`;
-            towerPreview.style.top = `${y}px`;
-            
-            towerRange.style.left = `${x}px`;
-            towerRange.style.top = `${y}px`;
-            
-            // Validar si se puede colocar la torre
-            if (isPointOnPath(x, y, 40)) {
-                towerPreview.classList.remove('placement-valid');
-                towerPreview.classList.add('placement-invalid');
-                towerRange.classList.remove('placement-valid');
-                towerRange.classList.add('placement-invalid');
-            } else {
-                towerPreview.classList.remove('placement-invalid');
-                towerPreview.classList.add('placement-valid');
-                towerRange.classList.remove('placement-invalid');
-                towerRange.classList.add('placement-valid');
-            }
-        }
-        
-        function handleMouseMove(e) {
-            if (selectedTower && !gameOverState) {
-                updateTowerPreview(e);
-            }
-        }
-        
-        function handleMapClick(e) {
-            if (selectedTower && gameRunning && !gameOverState) {
-                const rect = gameMap.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                
-                if (!isPointOnPath(x, y, 40)) {
+            gameMap.addEventListener('click', function(e) {
+                if (placingTower && !gameOverState) {
+                    const rect = gameCanvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
                     placeTowerAt(x, y);
                 }
-            }
-        }
-        
-        function handleGlobalClick(e) {
-            // Ocultar panel de mejoras si se hace clic fuera de él
-            if (upgradePanel.style.display === 'block') {
-                const rect = upgradePanel.getBoundingClientRect();
-                if (e.clientX < rect.left || e.clientX > rect.right || 
-                    e.clientY < rect.top || e.clientY > rect.bottom) {
-                    upgradePanel.style.display = 'none';
+            });
+            
+            // Mover la torre con el mouse
+            gameMap.addEventListener('mousemove', function(e) {
+                if (placingTower) {
+                    const rect = gameCanvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    updateTowerPreview(x, y);
                 }
-            }
+            });
+            
+            // Cancelar colocación con clic derecho
+            gameMap.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                cancelPlacingTower();
+            });
         }
         
         // NUEVO: Mapa de pixel art bosque detallado con bordes negros finos
@@ -1201,34 +1372,139 @@
         }
         
         // Lógica para colocar torres
+        function startPlacingTower() {
+            if (gameOverState) return;
+            placingTower = true;
+            createTowerPreview();
+            createRangeIndicator();
+        }
+        
+        function createTowerPreview() {
+            if (towerPreview) {
+                document.body.removeChild(towerPreview);
+            }
+            
+            towerPreview = document.createElement('div');
+            towerPreview.className = `tower-preview ${selectedTower}`;
+            towerPreview.style.width = '32px';
+            towerPreview.style.height = '32px';
+            
+            // Crear canvas para el sprite
+            const spriteCanvas = document.createElement('canvas');
+            spriteCanvas.width = 32;
+            spriteCanvas.height = 32;
+            spriteCanvas.style.width = '32px';
+            spriteCanvas.style.height = '32px';
+            const spriteCtx = spriteCanvas.getContext('2d');
+            
+            // Dibujar el sprite (usamos la vista de arriba por defecto)
+            if (towerSprites[selectedTower] && towerSprites[selectedTower].top) {
+                towerSprites[selectedTower].top.draw(spriteCtx, 0, 0);
+            }
+            
+            towerPreview.appendChild(spriteCanvas);
+            document.body.appendChild(towerPreview);
+        }
+        
+        function createRangeIndicator() {
+            if (rangeIndicator) {
+                document.body.removeChild(rangeIndicator);
+            }
+            
+            rangeIndicator = document.createElement('div');
+            rangeIndicator.className = 'tower-range';
+            rangeIndicator.style.width = '200px';
+            rangeIndicator.style.height = '200px';
+            document.body.appendChild(rangeIndicator);
+        }
+        
+        function updateTowerPreview(x, y) {
+            if (!towerPreview || !rangeIndicator) return;
+            
+            // Actualizar posición
+            towerPreview.style.left = `${x}px`;
+            towerPreview.style.top = `${y}px`;
+            
+            // Actualizar rango
+            rangeIndicator.style.left = `${x - 100}px`;
+            rangeIndicator.style.top = `${y - 100}px`;
+            
+            // Validar colocación
+            if (isPointOnPath(x, y, 40)) {
+                towerPreview.classList.add('placement-invalid');
+                towerPreview.classList.remove('placement-valid');
+                rangeIndicator.style.borderColor = 'rgba(255, 0, 0, 0.5)';
+            } else {
+                towerPreview.classList.add('placement-valid');
+                towerPreview.classList.remove('placement-invalid');
+                rangeIndicator.style.borderColor = 'rgba(0, 255, 0, 0.5)';
+            }
+        }
+        
+        function cancelPlacingTower() {
+            placingTower = false;
+            if (towerPreview) {
+                document.body.removeChild(towerPreview);
+                towerPreview = null;
+            }
+            if (rangeIndicator) {
+                document.body.removeChild(rangeIndicator);
+                rangeIndicator = null;
+            }
+            selectedTower = null;
+        }
+        
         function placeTowerAt(x, y) {
             if (gameOverState) return;
+            
+            // Validar que no esté en el camino
+            if (isPointOnPath(x, y, 40)) {
+                showMessage("No puedes construir en el camino.");
+                cancelPlacingTower();
+                return;
+            }
             
             const cost = getTowerCost(selectedTower);
             if (coins < cost) {
                 showMessage("Monedas insuficientes.");
-                return;
-            }
-            
-            // Evitar colocar torres en el camino
-            if (isPointOnPath(x, y, 40)) {
-                showMessage("No puedes construir en el camino.");
+                cancelPlacingTower();
                 return;
             }
             
             coins -= cost;
             updateCoinDisplay();
-            const tower = document.createElement('div');
-            tower.className = `tower ${selectedTower}`;
-            tower.style.left = `${x}px`;
-            tower.style.top = `${y}px`;
-            tower.setAttribute('data-type', selectedTower);
-            tower.addEventListener('click', showUpgrades);
-            gameMap.appendChild(tower);
+            
+            // Determinar si la torre está en la parte superior o inferior del mapa
+            const isTop = y < 300;
+            const view = isTop ? 'top' : 'bottom';
+            
+            const towerElement = document.createElement('div');
+            towerElement.className = `tower ${selectedTower}`;
+            towerElement.style.left = `${x}px`;
+            towerElement.style.top = `${y}px`;
+            towerElement.setAttribute('data-type', selectedTower);
+            towerElement.setAttribute('data-view', view);
+            towerElement.addEventListener('click', showUpgrades);
+            gameMap.appendChild(towerElement);
+            
+            // Crear sprite para la torre
+            const spriteCanvas = document.createElement('canvas');
+            spriteCanvas.width = 32;
+            spriteCanvas.height = 32;
+            spriteCanvas.style.width = '32px';
+            spriteCanvas.style.height = '32px';
+            const spriteCtx = spriteCanvas.getContext('2d');
+            
+            // Dibujar el sprite según la posición
+            if (towerSprites[selectedTower] && towerSprites[selectedTower][view]) {
+                towerSprites[selectedTower][view].draw(spriteCtx, 0, 0);
+            }
+            
+            towerElement.appendChild(spriteCanvas);
             
             // Añadir a la lógica del juego
             towers.push({
-                element: tower,
+                element: towerElement,
                 type: selectedTower,
                 x: x,
                 y: y,
@@ -1236,19 +1512,11 @@
                 range: 100,
                 cooldown: 1000,
                 lastShot: 0,
-                level: 1
+                level: 1,
+                view: view
             });
             
-            // Limpiar selección
-            selectedTower = null;
-            if (towerPreview) {
-                gameMap.removeChild(towerPreview);
-                towerPreview = null;
-            }
-            if (towerRange) {
-                gameMap.removeChild(towerRange);
-                towerRange = null;
-            }
+            cancelPlacingTower();
         }
         
         // Función para verificar si un punto está cerca del camino
@@ -1291,7 +1559,7 @@
             upgradePanel.style.top = `${e.clientY - rect.top - upgradePanel.clientHeight - 10}px`;
             
             // Encontrar la torre en el array
-            const towerElement = e.target;
+            const towerElement = e.target.closest('.tower');
             const towerIndex = towers.findIndex(t => t.element === towerElement);
             
             document.querySelectorAll('.upgrade-option').forEach(option => {
@@ -1337,71 +1605,46 @@
         }
         
         // Lógica de oleadas de enemigos
-        function startWave() {
-            if (waveInProgress || currentWave >= MAX_WAVES || gameOverState) {
+        function startNextWave() {
+            if (currentWave >= MAX_WAVES) {
+                showMessage("¡Has ganado el juego!");
                 return;
             }
             
-            waveInProgress = true;
+            startWave();
+        }
+        
+        function startWave() {
+            if (currentWave >= MAX_WAVES) {
+                showMessage("¡Has ganado el juego!");
+                return;
+            }
+            
             currentWave++;
             waveCount.textContent = `${currentWave}/${MAX_WAVES}`;
+            const enemyCount = 5 + currentWave * 2;
             
-            // Dificultad escalada
-            const enemyCount = 5 + currentWave * 3;
-            const enemyTypes = [];
+            // Determinar tipo de enemigo basado en la oleada
+            let enemyType = 'slime';
+            if (currentWave > 15) enemyType = 'dragon';
+            else if (currentWave > 10) enemyType = 'skeleton';
+            else if (currentWave > 5) enemyType = 'orc';
+            else if (currentWave > 3) enemyType = 'goblin';
             
-            // Determinar tipos de enemigos según la oleada
-            if (currentWave >= 18) {
-                enemyTypes.push({ type: 'dragon', weight: 5 });
-                enemyTypes.push({ type: 'skeleton', weight: 3 });
-                enemyTypes.push({ type: 'orc', weight: 2 });
-            } else if (currentWave >= 15) {
-                enemyTypes.push({ type: 'skeleton', weight: 4 });
-                enemyTypes.push({ type: 'orc', weight: 3 });
-                enemyTypes.push({ type: 'goblin', weight: 2 });
-                enemyTypes.push({ type: 'slime', weight: 1 });
-            } else if (currentWave >= 10) {
-                enemyTypes.push({ type: 'orc', weight: 3 });
-                enemyTypes.push({ type: 'goblin', weight: 2 });
-                enemyTypes.push({ type: 'slime', weight: 1 });
-            } else if (currentWave >= 5) {
-                enemyTypes.push({ type: 'goblin', weight: 2 });
-                enemyTypes.push({ type: 'slime', weight: 1 });
-            } else {
-                enemyTypes.push({ type: 'slime', weight: 1 });
-            }
-            
-            // Calcular pesos totales
-            const totalWeight = enemyTypes.reduce((sum, et) => sum + et.weight, 0);
-            
-            // Spawn enemies
             for (let i = 0; i < enemyCount; i++) {
                 setTimeout(() => {
-                    if (gameOverState) return;
-                    
-                    // Seleccionar tipo de enemigo basado en peso
-                    let randomWeight = Math.random() * totalWeight;
-                    let selectedType = 'slime';
-                    
-                    for (const enemyType of enemyTypes) {
-                        randomWeight -= enemyType.weight;
-                        if (randomWeight <= 0) {
-                            selectedType = enemyType.type;
-                            break;
-                        }
-                    }
-                    
-                    spawnEnemy(selectedType);
-                }, i * 600); // Más rápido entre enemigos
+                    spawnEnemy(enemyType);
+                }, i * 800);
             }
             
-            // Preparar para la siguiente ronda
-            setTimeout(() => {
-                if (enemies.length === 0 && !gameOverState && currentWave < MAX_WAVES) {
-                    waveInProgress = false;
-                    showMessage(`Oleada ${currentWave} completada. ¡Prepárate para la siguiente!`);
-                }
-            }, (enemyCount * 600) + 4000);
+            // Preparar la siguiente ronda
+            if (currentWave < MAX_WAVES) {
+                setTimeout(() => {
+                    if (enemies.length === 0 && !gameOverState) {
+                        showMessage("Todos los enemigos eliminados. Esperando al anfitrión para la siguiente ronda.");
+                    }
+                }, (enemyCount * 800) + 3000);
+            }
         }
         
         function spawnEnemy(type = 'slime') {
@@ -1649,7 +1892,9 @@
             
             gameOverState = true;
             gameRunning = false;
-            waveInProgress = false;
+            
+            // Ocultar botón de siguiente ronda
+            nextWaveBtn.style.display = 'none';
             
             // Mostrar overlay de Game Over
             gameOverStats.textContent = `Llegaste a la oleada ${currentWave}`;
@@ -1682,25 +1927,13 @@
                 }
             });
             
-            // Limpiar elementos de interfaz
-            if (towerPreview && towerPreview.parentNode) {
-                gameMap.removeChild(towerPreview);
-            }
-            if (towerRange && towerRange.parentNode) {
-                gameMap.removeChild(towerRange);
-            }
-            
             // Resetear variables
             enemies = [];
             towers = [];
             projectiles = [];
-            towerPreview = null;
-            towerRange = null;
-            selectedTower = null;
             coins = 500;
             health = 100;
             currentWave = 0;
-            waveInProgress = false;
             gameOverState = false;
             gameRunning = false;
             isHost = false;
@@ -1714,22 +1947,14 @@
         
         // Mensajes personalizados
         function showMessage(text) {
+            // Evitar múltiples mensajes
+            const existing = document.querySelector('.message-box');
+            if (existing) {
+                existing.remove();
+            }
+            
             const msgBox = document.createElement('div');
-            msgBox.style.cssText = `
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                background: rgba(0, 0, 0, 0.8);
-                color: white;
-                padding: 1rem 2rem;
-                border: 2px solid var(--accent-color);
-                z-index: 1000;
-                font-family: 'Press Start 2P', cursive;
-                text-align: center;
-                animation: fade-in 0.5s forwards;
-                border-radius: 5px;
-            `;
+            msgBox.className = 'message-box';
             msgBox.textContent = text;
             document.body.appendChild(msgBox);
             
@@ -1750,6 +1975,7 @@
             isHost = true;
             updateLobbyUI();
             showLobby();
+            showMessage("Código de sala: " + roomCode + ". Comparte este código con tus amigos.");
         }
         
         function joinRoom() {
@@ -1763,6 +1989,7 @@
                 isHost = false;
                 updateLobbyUI();
                 showLobby();
+                showMessage("Te has unido a la sala " + roomCode);
             }
         }
         
@@ -1785,7 +2012,7 @@
             playerInputs.forEach((el, i) => {
                 if (players[i]) {
                     el.value = players[i].name;
-                    el.disabled = !(players[i].isHost); // Solo el host puede editar su nombre
+                    el.disabled = (i !== 0 || !isHost); // Solo el primer jugador puede editar su nombre, y solo el host puede editar
                 } else {
                     el.value = "Esperando...";
                     el.disabled = true;
@@ -1795,13 +2022,13 @@
         
         // Permite editar el nombre del jugador local en el lobby
         player1Name.addEventListener('input', function() {
-            if (players[0] && players[0].isHost) {
-                players[0].name = player1Name.value.trim().substring(0, 12) || "Anfitrión";
+            if (players[0]) {
+                players[0].name = player1Name.value.trim().substring(0, 12) || "Tú";
             }
         });
         
         function startGame() {
-            // Simular jugadores adicionales (para prueba)
+            // Asegurar que todos los jugadores estén presentes
             while (players.length < 3) {
                 players.push({ name: "Jugador " + (players.length + 1), isHost: false });
             }
@@ -1812,12 +2039,17 @@
             drawMap(); // Dibuja el mapa antes de iniciar
             gameRunning = true;
             gameOverState = false;
-            waveInProgress = false;
             
             // Mostrar botón de siguiente ronda solo para el host
-            nextWaveBtn.style.display = isHost ? 'block' : 'none';
+            if (isHost) {
+                nextWaveBtn.style.display = 'block';
+            }
             
-            showMessage("¡El juego ha comenzado! El anfitrión inicia la primera ronda.");
+            // Primera ronda después de 3 segundos
+            setTimeout(() => {
+                startWave();
+            }, 3000);
+            
             requestAnimationFrame(towerLogic);
             requestAnimationFrame(moveProjectiles);
         }
@@ -1859,7 +2091,6 @@
         function leaveLobby() {
             roomCode = "";
             players = [];
-            isHost = false;
             showMainMenu();
         }
         
@@ -1870,14 +2101,11 @@
         
         function saveProfile() {
             playerName = document.getElementById('playerNameInput').value.trim() || "Jugador";
-            const currentName = players.find(p => p.name === "Tú" || p.name === "Anfitrión");
-            if (currentName) {
-                currentName.name = playerName;
-            } else {
-                players[0] = { name: playerName, isHost: isHost };
+            if (players[0]) {
+                players[0].name = playerName;
             }
-            updateLobbyUI();
             document.getElementById('profileModal').style.display = 'none';
+            showMessage("Perfil actualizado con éxito");
         }
         
         function showCredits() {
